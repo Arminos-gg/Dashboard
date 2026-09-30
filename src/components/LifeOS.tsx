@@ -32,7 +32,7 @@ import { MonitorView } from "./overlays/MonitorView";
 import { EditLayout } from "./overlays/EditLayout";
 import { Hideable } from "./ui/Hideable";
 import { getPref, SECTION_PREFS, usePref, useVisibleSections } from "@/lib/prefs";
-import { lockScroll } from "@/lib/scroll";
+import { lockScroll, parkScroll, rememberScroll, unparkScroll } from "@/lib/scroll";
 import type { PersistedLife } from "@/lib/store";
 
 const Background = dynamic(() => import("./scene/Background"), { ssr: false });
@@ -84,6 +84,7 @@ export function LifeOS() {
   const ai = useLife((s) => s.ai);
   const hasWeather = useLife((s) => !!s.weather || s.weatherFailed);
   const monitor = useLife((s) => s.monitor);
+  const wasMonitor = useRef(false);
   const calm = usePref("calm");
   const rails = usePref("rails");
   const sections = useVisibleSections();
@@ -99,8 +100,15 @@ export function LifeOS() {
     else url.searchParams.delete("monitor");
     window.history.replaceState(null, "", url.toString().replace("monitor=", "monitor"));
     document.title = monitor ? "Life/OS — Monitor" : "Life OS — Personal Command Center";
-    if (monitor) window.scrollTo(0, 0);
-    lockScroll(monitor || useLife.getState().focus.active);
+    const locked = monitor || useLife.getState().focus.active;
+    if (monitor) {
+      parkScroll();
+      lockScroll(true);
+    } else {
+      lockScroll(locked);
+      if (wasMonitor.current) unparkScroll();
+    }
+    wasMonitor.current = monitor;
   }, [monitor]);
 
   // layout changed (sections, hidden elements, detail) → scroll-driven reveals must re-measure,
@@ -112,6 +120,15 @@ export function LifeOS() {
     const id = requestAnimationFrame(() => ScrollTrigger.refresh());
     return () => cancelAnimationFrame(id);
   }, [hidden, detail, sectionKey, monitor]);
+
+  // capture the scroll position synchronously, before React unmounts the page for monitor mode
+  useEffect(
+    () =>
+      useLife.subscribe((s, prev) => {
+        if (s.monitor && !prev.monitor) rememberScroll();
+      }),
+    [],
+  );
 
   // the section index on the right reserves space only while it is shown
   useEffect(() => {
@@ -191,6 +208,54 @@ export function LifeOS() {
       const target = e.target as HTMLElement | null;
       const typing = !!target?.closest?.("input, textarea, select, [contenteditable='true']");
       const mod = e.metaKey || e.ctrlKey;
+      const key = e.key.toLowerCase();
+
+      // Ctrl/⌘+E opens or closes the planner from anywhere, even while typing
+      if (mod && !e.altKey && !e.shiftKey && key === "e") {
+        e.preventDefault();
+        s.setUi({ plannerOpen: !s.plannerOpen, labOpen: false });
+        return;
+      }
+
+      // Inside the planner every shortcut works bare when no field has focus,
+      // and with Ctrl/⌘ while you're typing. Other Ctrl combos (copy, paste,
+      // text undo…) are left to the browser.
+      if (s.plannerOpen) {
+        if (e.altKey || s.captureOpen || s.shortcutsOpen) return;
+        const close = (patch: Parameters<typeof s.setUi>[0] = {}) => s.setUi({ plannerOpen: false, ...patch });
+        // chord: also available as Ctrl/⌘+key (keys the browser reserves, like T or F, stay bare-only)
+        const actions: Record<string, { chord: boolean; run: () => void }> = {
+          e: { chord: true, run: () => close() },
+          k: { chord: true, run: () => window.dispatchEvent(new Event("lifeos:planner-quick")) },
+          g: { chord: true, run: () => close({ monitor: true }) },
+          l: { chord: true, run: () => close({ editLayout: true }) },
+          m: { chord: true, run: cycleMood },
+          b: { chord: true, run: () => void requestBriefing(currentMood(), true) },
+          s: {
+            chord: true,
+            run: () => {
+              s.setSfx(!s.sfx);
+              s.pushLog(`Sound effects · ${!s.sfx ? "on" : "off"}`);
+            },
+          },
+          "/": { chord: true, run: () => close({ shortcutsOpen: true }) },
+          "?": { chord: false, run: () => close({ shortcutsOpen: true }) },
+          z: { chord: !typing, run: undo },
+          t: { chord: false, run: () => close({ labOpen: true }) },
+          f: {
+            chord: false,
+            run: () => {
+              close();
+              startFocusSession(25);
+            },
+          },
+        };
+        const action = actions[e.key === "?" ? "?" : key];
+        if (!action || (typing && !mod) || (mod && !action.chord)) return;
+        e.preventDefault();
+        action.run();
+        return;
+      }
 
       if (mod && e.key.toLowerCase() === "k") {
         e.preventDefault();
@@ -204,7 +269,7 @@ export function LifeOS() {
       }
       if (typing || s.captureOpen || s.shortcutsOpen || s.plannerOpen || mod || e.altKey) return;
 
-      if (e.key.toLowerCase() === "l" && !s.monitor) {
+      if (e.key.toLowerCase() === "l") {
         s.setUi({ editLayout: !s.editLayout, labOpen: false });
         return;
       }

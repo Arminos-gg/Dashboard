@@ -31,6 +31,16 @@ export const ELEMENTS: Record<string, string> = {
   "focus.intention": "Focus · intention",
   "focus.soundscape": "Focus · soundscapes",
   footer: "Closing line",
+  "monitor.header": "Monitor · header",
+  "monitor.date": "Monitor · date",
+  "monitor.clock": "Monitor · clock",
+  "monitor.weather": "Monitor · weather",
+  "monitor.agenda": "Monitor · now / next / later",
+  "monitor.focus": "Monitor · focus timer",
+  "monitor.timeline": "Monitor · timeline",
+  "monitor.three": "Monitor · the three",
+  "monitor.rituals": "Monitor · rituals",
+  "monitor.whatnow": "Monitor · what now & briefing",
 };
 
 export const elementLabel = (id: string) => ELEMENTS[id] ?? id;

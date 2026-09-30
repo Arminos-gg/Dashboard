@@ -15,6 +15,7 @@ import { audio } from "@/lib/audio";
 import { burst } from "@/lib/sparks";
 import { useNow } from "@/components/ui/hooks";
 import { Glyph } from "@/components/ui/Glyph";
+import { Hideable } from "@/components/ui/Hideable";
 import { startFocusSession } from "@/components/sections/Focus";
 import type { CalEvent } from "@/lib/types";
 
@@ -404,6 +405,7 @@ export function MonitorView() {
   const ringsOn = usePref("rings");
   const effects = fieldOn || particlesOn || ringsOn;
   const [idle, setIdle] = useState(false);
+  const editing = useLife((s) => s.editLayout);
   const [fullscreen, setFullscreen] = useState(false);
   const [wakeOk, setWakeOk] = useState(true);
   const idleTimer = useRef<number | undefined>(undefined);
@@ -473,12 +475,13 @@ export function MonitorView() {
   const dayPct = ((now.getHours() * 60 + now.getMinutes()) / 1440) * 100;
 
   return (
-    <div className="fixed inset-0 z-30 overflow-hidden" style={{ cursor: idle ? "none" : "auto" }}>
+    <div className="fixed inset-0 z-30 overflow-hidden" style={{ cursor: idle && !editing ? "none" : "auto" }}>
       <div
         className="relative flex h-full flex-col px-[4vw] py-[4.5vh] transition-transform duration-[3000ms]"
         style={{ transform: `translate(${shift.x}px, ${shift.y}px)` }}
       >
         {/* header */}
+        <Hideable id="monitor.header">
         <div className="mono flex items-center justify-between text-faint">
           <span>
             <span className="text-ink">
@@ -492,14 +495,18 @@ export function MonitorView() {
             <span className="hidden md:inline">{mood.line}</span>
           </span>
         </div>
+        </Hideable>
 
         {/* main */}
         <div className="mt-[4vh] grid flex-1 grid-cols-1 gap-[4vh] lg:grid-cols-12 lg:gap-[3vw]">
           <div className="lg:col-span-7">
+            <Hideable id="monitor.date" className="w-fit">
             <div className="display italic text-muted" style={{ fontSize: "clamp(22px, 1.9vw, 46px)" }}>
               {weekday(now)}, {now.getDate()} {monthName(now)}
               {name ? ` — ${name}` : ""}
             </div>
+            </Hideable>
+            <Hideable id="monitor.clock" className="w-fit">
             <div className="display flex items-start leading-[0.85] tracking-[-0.04em]" style={{ fontSize: "clamp(120px, 15.5vw, 420px)" }}>
               <span>{hh}</span>
               <span className="italic text-accent" style={{ animation: "pulse-colon 2s ease-in-out infinite" }}>
@@ -515,6 +522,8 @@ export function MonitorView() {
             <div className="mt-[2vh] h-px w-full max-w-[46vw] bg-[var(--line)]">
               <div className="h-full bg-[var(--accent)]" style={{ width: `${dayPct}%` }} />
             </div>
+            </Hideable>
+            <Hideable id="monitor.weather" className="w-fit">
             {weather ? (
               <div className="mt-[3vh] flex flex-wrap items-center gap-x-[2vw] gap-y-2">
                 <Glyph name={weatherGlyph(weather.code, weather.isDay)} size={34} className="text-accent" />
@@ -531,26 +540,29 @@ export function MonitorView() {
             ) : (
               <div className="mono mt-[3vh] text-faint">{location?.label ?? ""} · weather unavailable</div>
             )}
+            </Hideable>
           </div>
 
-          <div className="lg:col-span-5 lg:border-l lg:border-[var(--line)] lg:pl-[3vw]">
+          <Hideable id={focusActive ? "monitor.focus" : "monitor.agenda"} className="lg:col-span-5 lg:border-l lg:border-[var(--line)] lg:pl-[3vw]">
             {focusActive ? <FocusCard /> : <NowNext now={now} />}
-          </div>
+          </Hideable>
         </div>
 
         {/* bottom */}
         <div className="mt-[3vh]">
-          <Timeline now={now} />
+          <Hideable id="monitor.timeline">
+            <Timeline now={now} />
+          </Hideable>
           <div className="mt-[3.5vh] grid grid-cols-1 gap-[3vh] md:grid-cols-12 md:gap-[3vw]">
-            <div className="md:col-span-4">
+            <Hideable id="monitor.three" className="md:col-span-4">
               <Three now={now} />
-            </div>
-            <div className="md:col-span-4">
+            </Hideable>
+            <Hideable id="monitor.rituals" className="md:col-span-4">
               <Rituals now={now} />
-            </div>
-            <div className="md:col-span-4">
+            </Hideable>
+            <Hideable id="monitor.whatnow" className="md:col-span-4">
               <WhatNow now={now} />
-            </div>
+            </Hideable>
           </div>
         </div>
       </div>
@@ -564,7 +576,7 @@ export function MonitorView() {
       {/* toolbar */}
       <div
         className="absolute inset-x-0 bottom-0 flex justify-center pb-5 transition-opacity duration-500"
-        style={{ opacity: idle ? 0 : 1, pointerEvents: idle ? "none" : "auto" }}
+        style={{ opacity: idle || editing ? 0 : 1, pointerEvents: idle || editing ? "none" : "auto" }}
       >
         <div className="flex flex-wrap items-center justify-center gap-2 border border-[var(--line)] bg-[rgb(7_7_9/0.92)] p-2 backdrop-blur-xl">
           <ToolButton label="Brightness" onClick={() => setPrefs({ monitorDim: ((dim + 1) % 3) as 0 | 1 | 2 })} active={dim > 0}>
@@ -592,6 +604,9 @@ export function MonitorView() {
           </ToolButton>
           <ToolButton label="Planner" onClick={() => setUi({ plannerOpen: true })}>
             <span className="kbd">E</span> Planner
+          </ToolButton>
+          <ToolButton label="Edit layout — click parts to hide them" onClick={() => setUi({ editLayout: true })}>
+            <span className="kbd">L</span> Layout
           </ToolButton>
           <ToolButton label="Leave monitor mode" onClick={() => setUi({ monitor: false })}>
             <span className="kbd">Esc</span> Exit

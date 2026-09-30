@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { motion } from "motion/react";
 import { useLife } from "@/lib/store";
@@ -13,6 +13,7 @@ import { addDays, dateKey, fromDateKey, hhmm, pad, relativeDay } from "@/lib/tim
 import { audio } from "@/lib/audio";
 import { Glyph } from "@/components/ui/Glyph";
 import { ConfirmButton } from "@/components/ui/ConfirmButton";
+import { TimeField } from "@/components/ui/TimeField";
 import type { ActivityKey, CalEvent, Habit, HabitGlyph, Priority, Task } from "@/lib/types";
 
 type Tab = "tasks" | "events" | "habits" | "data";
@@ -43,9 +44,9 @@ function Label({ children }: { children: ReactNode }) {
   return <span className="mono mb-1.5 block text-faint">{children}</span>;
 }
 
-function AddButton({ children = "Add" }: { children?: ReactNode }) {
+function AddButton({ children = "Add", className = "h-[42px]" }: { children?: ReactNode; className?: string }) {
   return (
-    <button type="submit" className="mono flex h-[42px] items-center justify-center gap-2 bg-[var(--accent)] px-5 text-[#0a0a0a] transition-opacity hover:opacity-85">
+    <button type="submit" className={`mono flex shrink-0 ${className} items-center justify-center gap-2 bg-[var(--accent)] px-5 text-[#0a0a0a] transition-opacity hover:opacity-85`}>
       <Glyph name="plus" size={14} strokeWidth={1.8} /> {children}
     </button>
   );
@@ -129,7 +130,7 @@ function QuickAdd({ inputRef }: { inputRef: React.RefObject<HTMLInputElement | n
           aria-label="Quick add"
           disabled={busy}
         />
-        <AddButton>{busy ? "Adding…" : "Add"}</AddButton>
+        <AddButton className="h-[46px]">{busy ? "Adding…" : "Add"}</AddButton>
       </div>
       <div className="mt-3 min-h-[20px] text-[13px] text-muted">
         {preview ? (
@@ -188,7 +189,7 @@ function AddTaskForm() {
       </label>
       <label>
         <Label>Time</Label>
-        <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="field h-[42px] w-full" disabled={!date} />
+        <TimeField value={time} onChange={setTime} disabled={!date} className="h-[42px] w-full" ariaLabel="Time" />
       </label>
       <label>
         <Label>Priority</Label>
@@ -241,13 +242,12 @@ function TaskRow({ task }: { task: Task }) {
           aria-label="Due date"
           className={`field h-9 w-full ${overdue ? "!border-[var(--accent)] text-accent" : ""}`}
         />
-        <input
-          type="time"
+        <TimeField
           value={task.dueTime ?? ""}
           disabled={!task.dueDate}
-          onChange={(e) => s().updateTask(task.id, { dueTime: e.target.value || undefined })}
-          aria-label="Due time"
-          className="field h-9 w-full"
+          onChange={(v) => s().updateTask(task.id, { dueTime: v || undefined })}
+          ariaLabel="Due time"
+          className="h-9 w-full"
         />
         <select
           value={task.priority}
@@ -374,11 +374,11 @@ function AddEventForm() {
       </label>
       <label>
         <Label>Start</Label>
-        <input type="time" value={start} onChange={(e) => setStart(e.target.value)} className="field h-[42px] w-full" required />
+        <TimeField value={start} onChange={setStart} required className="h-[42px] w-full" ariaLabel="Start" />
       </label>
       <label>
         <Label>End</Label>
-        <input type="time" value={end} onChange={(e) => setEnd(e.target.value)} className="field h-[42px] w-full" required />
+        <TimeField value={end} onChange={setEnd} required className="h-[42px] w-full" ariaLabel="End" />
       </label>
       <label>
         <Label>Type</Label>
@@ -418,8 +418,8 @@ function EventRow({ ev }: { ev: CalEvent }) {
       </div>
       <div className="col-span-2 grid grid-cols-2 gap-2 sm:grid-cols-5 lg:contents">
         <input type="date" value={day} onChange={(e) => e.target.value && setTimes(e.target.value, hhmm(start), hhmm(end))} aria-label="Date" className="field h-9 w-full" />
-        <input type="time" value={hhmm(start)} onChange={(e) => e.target.value && setTimes(day, e.target.value, hhmm(end))} aria-label="Start" className="field h-9 w-full" />
-        <input type="time" value={hhmm(end)} onChange={(e) => e.target.value && setTimes(day, hhmm(start), e.target.value)} aria-label="End" className="field h-9 w-full" />
+        <TimeField value={hhmm(start)} onChange={(v) => setTimes(day, v, hhmm(end))} required ariaLabel="Start" className="h-9 w-full" />
+        <TimeField value={hhmm(end)} onChange={(v) => setTimes(day, hhmm(start), v)} required ariaLabel="End" className="h-9 w-full" />
         <select value={ev.activity} onChange={(e) => s().updateEvent(ev.id, { activity: e.target.value as ActivityKey })} aria-label="Type" className="field h-9 w-full">
           {ACTIVITIES.map((a) => (
             <option key={a.key} value={a.key}>
@@ -708,6 +708,13 @@ export function Planner() {
   const quick = useRef<HTMLInputElement>(null);
   const now = new Date();
 
+  // Ctrl/⌘+K (or K) inside the planner jumps to quick add instead of opening the capture overlay
+  useEffect(() => {
+    const focusQuick = () => quick.current?.focus();
+    window.addEventListener("lifeos:planner-quick", focusQuick);
+    return () => window.removeEventListener("lifeos:planner-quick", focusQuick);
+  }, []);
+
   return (
     <Dialog.Root open={open} onOpenChange={(o) => setUi({ plannerOpen: o })}>
       <Dialog.Portal>
@@ -738,9 +745,15 @@ export function Planner() {
                   A calm, readable view for adding and editing everything. Changes appear on the dashboard instantly.
                 </Dialog.Description>
               </div>
-              <Dialog.Close className="mono flex items-center gap-2 border border-[var(--line-strong)] px-4 py-2.5 text-ink transition-colors hover:border-[var(--accent)]">
-                Back to dashboard <span className="kbd">Esc</span>
-              </Dialog.Close>
+              <div className="flex flex-col items-end gap-3">
+                <Dialog.Close className="mono flex items-center gap-2 border border-[var(--line-strong)] px-4 py-2.5 text-ink transition-colors hover:border-[var(--accent)]">
+                  Back to dashboard <span className="kbd">E</span> <span className="kbd">Esc</span>
+                </Dialog.Close>
+                <p className="mono max-w-[340px] text-right text-faint" style={{ fontSize: 10 }}>
+                  Shortcuts work as usual — add <span className="text-muted">Ctrl</span> while typing in a field: Ctrl+E close · Ctrl+K quick add ·
+                  Ctrl+G monitor · Ctrl+L layout · Ctrl+M mood
+                </p>
+              </div>
             </header>
 
             <div className="mt-8">

@@ -90,6 +90,20 @@ html.lenis body {
   outline-offset: 4px;
 }
 
+/* form fields show focus with their own accent border — no second, offset ring */
+.field:focus-visible,
+.field:focus {
+  outline: none;
+}
+.field::-webkit-calendar-picker-indicator {
+  filter: invert(0.85);
+  opacity: 0.5;
+  cursor: pointer;
+}
+.field::-webkit-calendar-picker-indicator:hover {
+  opacity: 0.9;
+}
+
 /* custom cursor (fine pointers only) */
 @media (pointer: fine) {
   html.cursor-on,

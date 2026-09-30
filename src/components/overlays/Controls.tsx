@@ -13,7 +13,7 @@ import type { MoodKey } from "@/lib/types";
 
 const KEYS: [string[], string][] = [
   [["K"], "Capture anything"],
-  [["E"], "Planner — add & edit in a plain view"],
+  [["E"], "Planner — add & edit (Ctrl+E anywhere; inside it, Ctrl+key while typing)"],
   [["F"], "Enter the focus chamber"],
   [["Space"], "Hold / resume focus"],
   [["Esc"], "Close · leave focus"],

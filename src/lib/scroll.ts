@@ -29,6 +29,39 @@ export function scrollToId(id: string) {
   else el.scrollIntoView({ behavior: "smooth" });
 }
 
+let parkedAt = 0;
+
+/** Call before the page content unmounts, while the scroll position is still real. */
+export function rememberScroll() {
+  parkedAt = window.scrollY;
+}
+
+/** A full-screen mode takes over: start it from the top. */
+export function parkScroll() {
+  window.scrollTo(0, 0);
+  lenis?.scrollTo(0, { immediate: true, force: true });
+}
+
+/**
+ * Coming back from a full-screen mode: the page was unmounted underneath, so the
+ * smooth-scroll engine and every scroll-driven reveal must re-measure before anything
+ * shows — then return to where the user was and nudge once so the browser repaints.
+ */
+export function unparkScroll() {
+  const y = parkedAt;
+  requestAnimationFrame(() => {
+    lenis?.resize();
+    ScrollTrigger.refresh();
+    lenis?.scrollTo(y, { immediate: true, force: true });
+    window.scrollTo(0, y);
+    requestAnimationFrame(() => {
+      window.scrollBy(0, 1);
+      window.scrollBy(0, -1);
+      ScrollTrigger.update();
+    });
+  });
+}
+
 export function lockScroll(locked: boolean) {
   if (!lenis) return;
   if (locked) lenis.stop();
