@@ -59,6 +59,14 @@ background effects on/off, **Keep awake** (Screen Wake Lock), fullscreen, captur
 few pixels each minute to spare OLED panels. Open **`/?monitor`** to land in it directly — bookmark that on the second
 screen. Tabs stay in sync, so anything you change on your main screen appears on the monitor within a moment.
 
+### Lunch countdown
+
+Set a lunch time, length and days (card in the Now section → **Set**, or in the Lab). A T-minus countdown with a
+filling hunger gauge and escalating status lines ("Snack reserves depleting", "Stomach has filed a formal complaint")
+appears in the Now section, the top bar and monitor mode; the browser tab counts down during the last hour. Log
+today's "payload" (what's for lunch), hear the last ten seconds tick, and at T-0 the dashboard launches. Every piece
+can be switched off or hidden with the layout editor.
+
 ### Edit layout (`L`)
 
 Every part of the page is outlined; click one to remove it (the rest of the page reflows). Hidden parts are listed in

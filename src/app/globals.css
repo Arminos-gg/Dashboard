@@ -319,3 +319,14 @@ main {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* drop-down lists scroll by wheel/keys, without a visible bar; edges fade to hint there's more */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.picker-fade {
+  mask-image: linear-gradient(to bottom, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%);
+}

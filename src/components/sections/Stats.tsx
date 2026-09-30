@@ -13,6 +13,7 @@ import { Hideable } from "@/components/ui/Hideable";
 import { usePref } from "@/lib/prefs";
 import { MorphChart, type ChartView } from "@/components/charts/MorphChart";
 import { Allocation } from "@/components/charts/Allocation";
+import { Spark } from "@/components/charts/Spark";
 import { Consistency } from "@/components/charts/Consistency";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -75,21 +76,31 @@ function Seg<T extends string | number>({
   render?: (v: T) => string;
 }) {
   return (
-    <div className="mono flex items-center gap-4" role="radiogroup" aria-label={label}>
-      <span className="text-faint">{label}</span>
-      {options.map((o) => (
-        <button
-          key={String(o)}
-          role="radio"
-          aria-checked={o === value}
-          onClick={() => onChange(o)}
-          className="relative pb-1 transition-colors"
-          style={{ color: o === value ? "var(--ink)" : "var(--faint)" }}
-        >
-          {render ? render(o) : String(o)}
-          {o === value && <motion.span layoutId={`seg-${label}`} className="absolute inset-x-0 -bottom-px h-px bg-[var(--accent)]" />}
-        </button>
-      ))}
+    <div className="flex items-center gap-3" role="radiogroup" aria-label={label}>
+      <span className="mono text-[10px] text-faint">{label}</span>
+      <div className="flex border border-[var(--line-strong)] p-[3px]">
+        {options.map((o) => {
+          const on = o === value;
+          return (
+            <button
+              key={String(o)}
+              role="radio"
+              aria-checked={on}
+              onClick={() => onChange(o)}
+              className={`mono relative px-3 py-1.5 transition-colors ${on ? "text-ink" : "text-muted hover:bg-[rgb(255_255_255/0.05)] hover:text-ink"}`}
+            >
+              {on && (
+                <motion.span
+                  layoutId={`seg-${label}`}
+                  className="absolute inset-0 border border-[var(--accent)] bg-[color-mix(in_oklab,var(--accent)_16%,transparent)]"
+                  transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                />
+              )}
+              <span className="relative">{render ? render(o) : String(o)}</span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -147,11 +158,21 @@ export function StatsSection() {
   const m = METRICS.find((x) => x.key === metric)!;
   const delta = (a: number, b: number) => (b > 0 ? Math.round(((a - b) / b) * 100) : 0);
 
+  const series = useMemo(
+    () => ({
+      score: data.days.map((d) => dayScore(d, habits, d.date) * 100),
+      tasks: data.days.map((d) => d.completed),
+      focus: data.days.map((d) => d.focusMin / 60),
+      rituals: data.days.map((d) => (habits.length ? (habits.filter((h) => h.log[d.date]).length / habits.length) * 100 : 0)),
+    }),
+    [data.days, habits],
+  );
+
   const figures = [
-    { label: "Momentum", value: streak, suffix: "", decimals: 0, note: "days in a row ≥ 50", d: null as number | null },
-    { label: "Completed", value: data.tasks, suffix: "", decimals: 0, note: `tasks · ${range}d`, d: delta(data.tasks, data.tasksPrev) },
-    { label: "Depth", value: data.focusH, suffix: "h", decimals: 1, note: `focus · ${range}d`, d: delta(data.focusH, data.focusPrev) },
-    { label: "Rituals", value: data.rituals, suffix: "%", decimals: 0, note: `kept · ${range}d`, d: delta(data.rituals, data.ritualsPrev) },
+    { label: "Momentum", value: streak, suffix: "", decimals: 0, note: "days in a row ≥ 50", d: null as number | null, spark: series.score, fmt: (v: number) => `score ${Math.round(v)}` },
+    { label: "Completed", value: data.tasks, suffix: "", decimals: 0, note: `tasks · ${range}d`, d: delta(data.tasks, data.tasksPrev), spark: series.tasks, fmt: (v: number) => `${Math.round(v)} tasks` },
+    { label: "Depth", value: data.focusH, suffix: "h", decimals: 1, note: `focus · ${range}d`, d: delta(data.focusH, data.focusPrev), spark: series.focus, fmt: (v: number) => `${v.toFixed(1)}h` },
+    { label: "Rituals", value: data.rituals, suffix: "%", decimals: 0, note: `kept · ${range}d`, d: delta(data.rituals, data.ritualsPrev), spark: series.rituals, fmt: (v: number) => `${Math.round(v)}%` },
   ];
 
   return (
@@ -162,7 +183,7 @@ export function StatsSection() {
 
       {/* one filter row scopes every chart below */}
       <Hideable id="telemetry.filters" className="relative z-20 mt-[8vh] md:sticky md:top-[92px]">
-        <div className="flex flex-wrap gap-x-10 gap-y-3 border-y border-[var(--line)] bg-[rgb(5_5_6/0.86)] py-4 backdrop-blur-xl">
+        <div className="flex flex-wrap items-center gap-x-8 gap-y-3 border-y border-[var(--line)] bg-[rgb(5_5_6/0.86)] py-3 backdrop-blur-xl">
           <Seg label="Range" options={RANGES} value={range} onChange={setRange} render={(r) => `${r}D`} />
           <Seg label="Signal" options={METRICS.map((x) => x.key)} value={metric} onChange={setMetric} render={(k) => METRICS.find((x) => x.key === k)!.label.split(" ")[0]} />
           <Seg label="Form" options={["linear", "radial", "table"] as const} value={view} onChange={setView} />
@@ -187,6 +208,7 @@ export function StatsSection() {
                   )}
                 </div>
               )}
+              <Spark values={f.spark} dates={data.dates} format={f.fmt} />
             </div>
           ))}
         </div>

@@ -11,6 +11,7 @@ import { scrollState } from "@/lib/pointer";
 import { cloudConfigured } from "@/lib/sync";
 import { useNow } from "@/components/ui/hooks";
 import { usePref, useVisibleSections } from "@/lib/prefs";
+import { LunchChip } from "@/components/sections/Lunch";
 import { Hideable } from "@/components/ui/Hideable";
 import { Glyph } from "@/components/ui/Glyph";
 
@@ -161,6 +162,9 @@ export function Chrome() {
 
         <Hideable id="hud.status">
         <div className="mono flex items-center gap-5 text-right">
+          <Hideable id="hud.lunch" className="hidden sm:block">
+            <LunchChip />
+          </Hideable>
           {detail && (
           <span className="hidden items-center gap-2 lg:flex" title={ai?.model ?? "Local interpreter"}>
             <span

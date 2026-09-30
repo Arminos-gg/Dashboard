@@ -152,4 +152,22 @@ export interface Prefs {
   monitorDim: 0 | 1 | 2;
   monitorSeconds: boolean;
   monitorWake: boolean;
+  /** the lunch countdown (older saves may lack it — read through useLunch) */
+  lunch?: LunchPrefs;
+}
+
+export interface LunchPrefs {
+  enabled: boolean;
+  /** "HH:MM" */
+  time: string;
+  minutes: number;
+  /** 0 = Sunday … 6 = Saturday */
+  days: number[];
+  name: string;
+  sound: boolean;
+  tabTitle: boolean;
+  hud: boolean;
+  /** what's for lunch; only shown on menuDate */
+  menu: string;
+  menuDate: string;
 }

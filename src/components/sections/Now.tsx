@@ -19,6 +19,8 @@ import { Glyph } from "@/components/ui/Glyph";
 import { Magnetic } from "@/components/ui/Magnetic";
 import { WeatherTelemetry } from "./WeatherTelemetry";
 import { BriefingSheet } from "./BriefingSheet";
+import { LunchCard } from "./Lunch";
+import { useLunch } from "@/lib/lunch";
 
 function Digit({ value }: { value: string }) {
   return (
@@ -169,6 +171,7 @@ export function NowSection() {
   const echo = useRef<HTMLDivElement>(null);
   const showEcho = usePref("echo");
   const detail = usePref("detail");
+  const lunchOn = useLunch().enabled;
 
   const minuteKey = Math.floor(now.getTime() / 60_000);
   const subline = useMemo(() => {
@@ -257,11 +260,20 @@ export function NowSection() {
             </p>
           </Hideable>
         </div>
-        <Hideable id="now.weather" className="lg:col-span-4 lg:pt-[2vh]">
-          <div data-now-in>
-            <WeatherTelemetry now={now} />
-          </div>
-        </Hideable>
+        <div className="space-y-10 lg:col-span-4 lg:pt-[2vh]">
+          <Hideable id="now.weather">
+            <div data-now-in>
+              <WeatherTelemetry now={now} />
+            </div>
+          </Hideable>
+          {lunchOn && (
+            <Hideable id="now.lunch">
+              <div data-now-in>
+                <LunchCard />
+              </div>
+            </Hideable>
+          )}
+        </div>
       </div>
 
       <div className="relative mt-[10vh] grid gap-12 lg:grid-cols-12 lg:gap-16">

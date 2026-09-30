@@ -50,8 +50,21 @@ export function Consistency({
       .map((c) => ({ col: c.col, label: monthName(fromDateKey(c.key)).slice(0, 3) }));
   }, [cells]);
 
+  const weeks = useMemo(() => {
+    const out = Array.from({ length: WEEKS }, () => ({ sum: 0, n: 0 }));
+    for (const c of cells) {
+      if (c.score == null) continue;
+      out[c.col].sum += c.score;
+      out[c.col].n++;
+    }
+    return out.map((w) => (w.n ? w.sum / w.n : null));
+  }, [cells]);
+  const [hoverWeek, setHoverWeek] = useState<number | null>(null);
+
+  const BAR_H = 30;
+  const GRID_B = 20 + 7 * CELL;
   const W = WEEKS * CELL + 28;
-  const H = 7 * CELL + 26;
+  const H = GRID_B + 14 + BAR_H + 4;
   const h = cells.find((c) => c.key === hover);
   const today = dateKey(now);
 
@@ -59,6 +72,11 @@ export function Consistency({
     <div>
       <div className="overflow-x-auto" data-lenis-prevent-wheel>
         <svg width={W} height={H} className="block" role="img" aria-label="Daily consistency over the last 26 weeks">
+          <defs>
+            <filter id="cs-glow" x="-100%" y="-100%" width="300%" height="300%">
+              <feGaussianBlur stdDeviation="3" />
+            </filter>
+          </defs>
           {months.map((m) => (
             <text key={m.label + m.col} x={28 + m.col * CELL} y={9} fontSize={9} fill="var(--faint)" className="mono" letterSpacing="0.14em">
               {m.label.toUpperCase()}
@@ -79,9 +97,35 @@ export function Consistency({
                 {c.score == null ? (
                   <circle cx={cx} cy={cy} r={1} fill="var(--line-strong)" />
                 ) : (
-                  <circle cx={cx} cy={cy} r={1.4 + s * 4.6} fill="var(--accent)" opacity={0.18 + s * 0.82} />
+                  <>
+                    {s > 0.7 && <circle cx={cx} cy={cy} r={4 + s * 4} fill="var(--accent)" opacity={0.35 * s} filter="url(#cs-glow)" />}
+                    <circle cx={cx} cy={cy} r={1.4 + s * 4.6} fill="var(--accent)" opacity={0.18 + s * 0.82} />
+                  </>
                 )}
                 {(c.key === today || c.key === hover) && <circle cx={cx} cy={cy} r={7.5} fill="none" stroke="var(--ink)" strokeOpacity={0.6} />}
+              </g>
+            );
+          })}
+          {/* weekly average — the rhythm under the stars */}
+          <text x={0} y={GRID_B + 14 + BAR_H - 2} fontSize={9} fill="var(--faint)" className="mono">
+            WK
+          </text>
+          <line x1={28} x2={W} y1={GRID_B + 14 + BAR_H + 0.5} y2={GRID_B + 14 + BAR_H + 0.5} stroke="var(--line)" />
+          {weeks.map((w, i) => {
+            const bh = w == null ? 0 : Math.max(2, w * BAR_H);
+            const x = 28 + i * CELL + 3;
+            return (
+              <g key={i} onPointerEnter={() => setHoverWeek(i)} onPointerLeave={() => setHoverWeek(null)}>
+                <rect x={x - 3} y={GRID_B + 10} width={CELL} height={BAR_H + 6} fill="transparent" />
+                <rect
+                  x={x}
+                  y={GRID_B + 14 + BAR_H - bh}
+                  width={CELL - 6}
+                  height={bh}
+                  rx={1.5}
+                  fill="var(--accent)"
+                  opacity={hoverWeek === i ? 1 : 0.25 + (w ?? 0) * 0.6}
+                />
               </g>
             );
           })}
@@ -98,7 +142,9 @@ export function Consistency({
           More
         </span>
         <span className="min-h-[1.5em] text-muted" aria-live="polite">
-          {h && h.stat
+          {hoverWeek != null
+            ? `Week of ${relativeDay(cells.find((c) => c.col === hoverWeek)?.key ?? today, now)} · average ${weeks[hoverWeek] == null ? "—" : Math.round((weeks[hoverWeek] ?? 0) * 100)}`
+            : h && h.stat
             ? `${relativeDay(h.key, now)} · ${Math.round((h.score ?? 0) * 100)} · ${h.stat.completed} tasks · ${habitsDoneOn(habits, h.key)}/${habits.length} rituals · ${(h.stat.focusMin / 60).toFixed(1)}h focus`
             : "Hover a day"}
         </span>

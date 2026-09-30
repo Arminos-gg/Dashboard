@@ -14,6 +14,7 @@ import { audio } from "@/lib/audio";
 import { Glyph } from "@/components/ui/Glyph";
 import { ConfirmButton } from "@/components/ui/ConfirmButton";
 import { TimeField } from "@/components/ui/TimeField";
+import { SelectField } from "@/components/ui/SelectField";
 import type { ActivityKey, CalEvent, Habit, HabitGlyph, Priority, Task } from "@/lib/types";
 
 type Tab = "tasks" | "events" | "habits" | "data";
@@ -32,6 +33,11 @@ const GLYPHS: { value: HabitGlyph; label: string }[] = [
   { value: "moon", label: "Sleep" },
   { value: "spark", label: "Other" },
 ];
+
+const PRIORITY_OPTIONS = PRIORITIES.map((p) => ({ value: p.value, label: p.label }));
+const ACTIVITY_OPTIONS = ACTIVITIES.map((a) => ({ value: a.key, label: a.label }));
+const GLYPH_OPTIONS = GLYPHS.map((g) => ({ value: g.value, label: g.label, icon: <Glyph name={g.value} size={14} className="shrink-0 text-muted" /> }));
+const GLYPH_OPTIONS_AUTO = [{ value: "" as HabitGlyph | "", label: "Pick automatically" }, ...GLYPH_OPTIONS];
 
 const localIso = (day: string, time: string) => {
   const d = fromDateKey(day);
@@ -193,13 +199,7 @@ function AddTaskForm() {
       </label>
       <label>
         <Label>Priority</Label>
-        <select value={priority} onChange={(e) => setPriority(Number(e.target.value) as Priority)} className="field h-[42px] w-full">
-          {PRIORITIES.map((p) => (
-            <option key={p.value} value={p.value}>
-              {p.label}
-            </option>
-          ))}
-        </select>
+        <SelectField value={priority} onChange={setPriority} options={PRIORITY_OPTIONS} ariaLabel="Priority" className="h-[42px] w-full" />
       </label>
       <label>
         <Label>Tags</Label>
@@ -249,18 +249,7 @@ function TaskRow({ task }: { task: Task }) {
           ariaLabel="Due time"
           className="h-9 w-full"
         />
-        <select
-          value={task.priority}
-          onChange={(e) => s().updateTask(task.id, { priority: Number(e.target.value) as Priority })}
-          aria-label="Priority"
-          className="field h-9 w-full"
-        >
-          {PRIORITIES.map((p) => (
-            <option key={p.value} value={p.value}>
-              {p.label}
-            </option>
-          ))}
-        </select>
+        <SelectField value={task.priority} onChange={(v) => s().updateTask(task.id, { priority: v })} options={PRIORITY_OPTIONS} ariaLabel="Priority" className="h-9 w-full" />
         <CommitInput
           value={task.tags.join(", ")}
           onCommit={(v) => s().updateTask(task.id, { tags: v.split(/[,\s]+/).map((t) => t.replace(/^#/, "").toLowerCase()).filter(Boolean) })}
@@ -382,13 +371,7 @@ function AddEventForm() {
       </label>
       <label>
         <Label>Type</Label>
-        <select value={activity} onChange={(e) => setActivity(e.target.value as ActivityKey)} className="field h-[42px] w-full">
-          {ACTIVITIES.map((a) => (
-            <option key={a.key} value={a.key}>
-              {a.label}
-            </option>
-          ))}
-        </select>
+        <SelectField value={activity} onChange={setActivity} options={ACTIVITY_OPTIONS} ariaLabel="Type" className="h-[42px] w-full" />
       </label>
       <label>
         <Label>Place</Label>
@@ -420,13 +403,7 @@ function EventRow({ ev }: { ev: CalEvent }) {
         <input type="date" value={day} onChange={(e) => e.target.value && setTimes(e.target.value, hhmm(start), hhmm(end))} aria-label="Date" className="field h-9 w-full" />
         <TimeField value={hhmm(start)} onChange={(v) => setTimes(day, v, hhmm(end))} required ariaLabel="Start" className="h-9 w-full" />
         <TimeField value={hhmm(end)} onChange={(v) => setTimes(day, hhmm(start), v)} required ariaLabel="End" className="h-9 w-full" />
-        <select value={ev.activity} onChange={(e) => s().updateEvent(ev.id, { activity: e.target.value as ActivityKey })} aria-label="Type" className="field h-9 w-full">
-          {ACTIVITIES.map((a) => (
-            <option key={a.key} value={a.key}>
-              {a.label}
-            </option>
-          ))}
-        </select>
+        <SelectField value={ev.activity} onChange={(v) => s().updateEvent(ev.id, { activity: v })} options={ACTIVITY_OPTIONS} ariaLabel="Type" className="h-9 w-full" />
         <CommitInput value={ev.location ?? ""} onCommit={(v) => s().updateEvent(ev.id, { location: v })} placeholder="place" ariaLabel="Place" className="h-9 w-full" />
       </div>
     </li>
@@ -489,13 +466,7 @@ function HabitRow({ habit, days }: { habit: Habit; days: Date[] }) {
   const streak = habitStreak(habit);
   return (
     <li className="grid grid-cols-[130px_1fr_36px] items-center gap-3 border-b border-[var(--line)] py-3 lg:grid-cols-[130px_1fr_auto_90px_36px]">
-      <select value={habit.glyph} onChange={(e) => s().updateHabit(habit.id, { glyph: e.target.value as HabitGlyph })} aria-label="Icon" className="field h-9 w-full">
-        {GLYPHS.map((g) => (
-          <option key={g.value} value={g.value}>
-            {g.label}
-          </option>
-        ))}
-      </select>
+      <SelectField value={habit.glyph} onChange={(v) => s().updateHabit(habit.id, { glyph: v })} options={GLYPH_OPTIONS} ariaLabel="Icon" className="h-9 w-full" />
       <CommitInput value={habit.name} onCommit={(v) => s().updateHabit(habit.id, { name: v })} ariaLabel="Habit name" className="h-9 w-full" />
       <div className="col-start-3 row-start-1 lg:col-start-5">
         <IconButton label={`Delete “${habit.name}”`} name="close" onClick={() => s().removeHabit(habit.id)} />
@@ -557,14 +528,7 @@ function HabitsTab() {
         </label>
         <label>
           <Label>Icon</Label>
-          <select value={glyph} onChange={(e) => setGlyph(e.target.value as HabitGlyph)} className="field h-[42px] w-full">
-            <option value="">Pick automatically</option>
-            {GLYPHS.map((g) => (
-              <option key={g.value} value={g.value}>
-                {g.label}
-              </option>
-            ))}
-          </select>
+          <SelectField value={glyph} onChange={setGlyph} options={GLYPH_OPTIONS_AUTO} ariaLabel="Icon" className="h-[42px] w-full" />
         </label>
         <AddButton />
       </form>
@@ -727,6 +691,10 @@ export function Planner() {
           onOpenAutoFocus={(e) => {
             e.preventDefault();
             quick.current?.focus();
+          }}
+          // Esc inside an open drop-down closes just the drop-down
+          onEscapeKeyDown={(e) => {
+            if (document.querySelector("[data-picker-open]")) e.preventDefault();
           }}
         >
           <motion.div

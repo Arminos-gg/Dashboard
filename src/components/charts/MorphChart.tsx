@@ -128,6 +128,10 @@ export function MorphChart({
   const refs = useRef<{
     area?: SVGPathElement | null;
     line?: SVGPathElement | null;
+    glow?: SVGPathElement | null;
+    ticks?: SVGPathElement | null;
+    peak?: SVGGElement | null;
+    tip?: HTMLDivElement | null;
     avg?: SVGPathElement | null;
     base?: SVGPathElement | null;
     grid: (SVGPathElement | null)[];
@@ -155,7 +159,28 @@ export function MorphChart({
       base.push(project(u, 0, t, g));
       avgPts.push(project(u, curAvg.current[j], t, g));
     }
-    r.line?.setAttribute("d", polyline(line));
+    const d = polyline(line);
+    r.line?.setAttribute("d", d);
+    r.glow?.setAttribute("d", d);
+    // one hairline per day, baseline → value: gives the curve its instrument texture
+    const n = values.length;
+    let ticks = "";
+    let peakI = 0;
+    for (let i = 0; i < n; i++) {
+      const u = n > 1 ? i / (n - 1) : 1;
+      const j = Math.round(u * (M - 1));
+      const [ax, ay] = project(u, 0, t, g);
+      const [bx, by] = project(u, cur.current[j], t, g);
+      ticks += `M${ax.toFixed(1)} ${ay.toFixed(1)}L${bx.toFixed(1)} ${by.toFixed(1)}`;
+      if (values[i] > values[peakI]) peakI = i;
+    }
+    r.ticks?.setAttribute("d", ticks);
+    if (r.peak) {
+      const u = n > 1 ? peakI / (n - 1) : 1;
+      const [px, py] = project(u, cur.current[Math.round(u * (M - 1))], t, g);
+      r.peak.setAttribute("transform", `translate(${px.toFixed(1)} ${py.toFixed(1)})`);
+      r.peak.style.opacity = values[peakI] > 0 && peakI !== n - 1 && hover.current == null ? "1" : "0";
+    }
     r.base?.setAttribute("d", polyline(base));
     r.area?.setAttribute("d", polyline([...line, ...base.slice().reverse()]) + "Z");
     r.avg?.setAttribute("d", avg ? polyline(avgPts) : "");
@@ -198,8 +223,16 @@ export function MorphChart({
       r.mline?.setAttribute("d", `M${qx.toFixed(1)} ${qy.toFixed(1)}L${tx.toFixed(1)} ${ty.toFixed(1)}`);
       r.mdot?.setAttribute("cx", px.toFixed(1));
       r.mdot?.setAttribute("cy", py.toFixed(1));
-    } else if (r.marker) r.marker.style.opacity = "0";
-  }, [geom, avg, values.length]);
+      if (r.tip) {
+        const flip = px > g.w - 170;
+        r.tip.style.opacity = "1";
+        r.tip.style.transform = `translate(${(flip ? px - 16 : px + 16).toFixed(1)}px, ${(py - 24).toFixed(1)}px) translateX(${flip ? "-100%" : "0"})`;
+      }
+    } else {
+      if (r.marker) r.marker.style.opacity = "0";
+      if (r.tip) r.tip.style.opacity = "0";
+    }
+  }, [geom, avg, values]);
 
   const kick = useCallback(() => {
     cancelAnimationFrame(raf.current);
@@ -342,7 +375,7 @@ export function MorphChart({
       </div>
 
       <div className="relative">
-      <motion.div animate={{ opacity: view === "table" ? 0.06 : 1, filter: view === "table" ? "blur(6px)" : "blur(0px)" }} transition={{ duration: 0.6 }}>
+      <motion.div className="relative" animate={{ opacity: view === "table" ? 0.06 : 1, filter: view === "table" ? "blur(6px)" : "blur(0px)" }} transition={{ duration: 0.6 }}>
         <svg
           ref={svg}
           width={size.w}
@@ -366,9 +399,12 @@ export function MorphChart({
         >
           <defs>
             <linearGradient id="mc-area" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.28" />
+              <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.34" />
               <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
             </linearGradient>
+            <filter id="mc-glow" x="-10%" y="-30%" width="120%" height="160%">
+              <feGaussianBlur stdDeviation="7" />
+            </filter>
           </defs>
           {LEVELS.map((lv, k) => (
             <path key={lv} ref={(el) => void (refs.current.grid[k] = el)} fill="none" stroke="var(--line)" />
@@ -378,8 +414,16 @@ export function MorphChart({
             <path key={k} ref={(el) => void (refs.current.dticks[k] = el)} stroke="var(--line-strong)" />
           ))}
           <path ref={(el) => void (refs.current.area = el)} fill="url(#mc-area)" />
+          <path ref={(el) => void (refs.current.ticks = el)} fill="none" stroke="var(--accent)" strokeOpacity={0.28} />
           <path ref={(el) => void (refs.current.avg = el)} fill="none" stroke="var(--ink)" strokeOpacity={0.55} strokeDasharray="3 3" />
-          <path ref={(el) => void (refs.current.line = el)} fill="none" stroke="var(--accent)" strokeWidth={1.6} />
+          <path ref={(el) => void (refs.current.glow = el)} fill="none" stroke="var(--accent)" strokeWidth={5} strokeOpacity={0.55} filter="url(#mc-glow)" />
+          <path ref={(el) => void (refs.current.line = el)} fill="none" stroke="var(--accent)" strokeWidth={2} strokeLinejoin="round" />
+          <g ref={(el) => void (refs.current.peak = el)} style={{ transition: "opacity .3s" }} pointerEvents="none">
+            <circle r={3} fill="var(--void)" stroke="var(--accent)" strokeWidth={1.5} />
+            <text x={8} y={-8} fontSize={9.5} className="mono" fill="var(--ink)" fillOpacity={0.7} letterSpacing="0.14em">
+              PEAK {format(d3.max(values) ?? 0).toUpperCase()}
+            </text>
+          </g>
           {LEVELS.map((lv, k) => (
             <text
               key={`v${lv}`}
@@ -416,6 +460,18 @@ export function MorphChart({
             <circle ref={(el) => void (refs.current.mdot = el)} r={4.5} fill="var(--void)" stroke="var(--ink)" strokeWidth={1.5} />
           </g>
         </svg>
+        <div
+          ref={(el) => void (refs.current.tip = el)}
+          className="pointer-events-none absolute left-0 top-0 whitespace-nowrap border border-[var(--line-strong)] bg-[rgb(8_8_10/0.92)] px-3 py-2 backdrop-blur-md"
+          style={{ opacity: 0, transition: "opacity .15s" }}
+          aria-hidden
+        >
+          <div className="figure text-[22px] leading-none text-ink">{format(values[h] ?? 0)}</div>
+          <div className="mono mt-1.5 text-[10px] text-faint">
+            {shownDate ? relativeDay(shownDate) : ""}
+            {avg && hovered != null ? ` · mean ${format(avg[hovered] ?? 0)}` : ""}
+          </div>
+        </div>
       </motion.div>
 
       <AnimatePresence>

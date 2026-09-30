@@ -12,6 +12,7 @@ import { scrollToId } from "@/lib/scroll";
 import { requestBriefing } from "@/lib/briefing-runner";
 import { dateKey } from "@/lib/time";
 import { startFocusSession, SOUNDSCAPES } from "@/components/sections/Focus";
+import { LunchSettings } from "@/components/sections/Lunch";
 import { Glyph } from "@/components/ui/Glyph";
 import { ConfirmButton } from "@/components/ui/ConfirmButton";
 import { clearAllData, resetDemoData } from "@/lib/data-actions";
@@ -272,6 +273,13 @@ export function Lab() {
               </div>
               <div className="mono mt-5 text-faint">Hidden elements</div>
               <HiddenList />
+            </section>
+
+            <section className="border-t border-[var(--line)] py-5">
+              <div className="mono text-muted">Lunch countdown</div>
+              <div className="mt-4">
+                <LunchSettings />
+              </div>
             </section>
 
             <section className="border-t border-[var(--line)] py-5">

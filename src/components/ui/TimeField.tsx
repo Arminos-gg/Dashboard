@@ -85,7 +85,7 @@ export function TimeField({
   };
 
   return (
-    <div className={`relative ${className}`}>
+    <div className={`relative ${className}`} data-picker-open={(open && !disabled) || undefined}>
       <input
         value={draft}
         disabled={disabled}
@@ -120,6 +120,7 @@ export function TimeField({
             commit(active >= 0 ? options[active] : draft);
             (e.target as HTMLInputElement).blur();
           } else if (e.key === "Escape") {
+            e.preventDefault();
             e.stopPropagation();
             setDraft(value);
             setOpen(false);
@@ -129,12 +130,14 @@ export function TimeField({
         style={{ fontFamily: "var(--font-mono)", fontSize: 14 }}
       />
       {open && !disabled && (
+        <div className="absolute left-0 top-full z-40 mt-1 w-full min-w-[112px] border border-[var(--line-strong)] bg-[#0b0b0d] shadow-[0_24px_48px_-16px_rgba(0,0,0,0.9)]">
         <ul
           ref={list}
           id={listId}
           role="listbox"
+          aria-label={ariaLabel}
           data-lenis-prevent
-          className="absolute left-0 top-full z-40 mt-1 max-h-[232px] w-full min-w-[112px] overflow-y-auto border border-[var(--line-strong)] bg-[#0b0b0d] py-1 shadow-[0_24px_48px_-16px_rgba(0,0,0,0.9)]"
+          className="no-scrollbar picker-fade max-h-[232px] overflow-y-auto py-2"
         >
           {options.map((s, i) => {
             const selected = s === value;
@@ -161,6 +164,7 @@ export function TimeField({
             );
           })}
         </ul>
+        </div>
       )}
     </div>
   );

@@ -27,6 +27,7 @@ import { FocusOverlay } from "./overlays/FocusOverlay";
 import { QuickCapture } from "./overlays/QuickCapture";
 import { Controls } from "./overlays/Controls";
 import { Lab } from "./overlays/Lab";
+import { LunchWatcher } from "@/components/sections/Lunch";
 import { Planner } from "./overlays/Planner";
 import { MonitorView } from "./overlays/MonitorView";
 import { EditLayout } from "./overlays/EditLayout";
@@ -99,7 +100,6 @@ export function LifeOS() {
     if (monitor) url.searchParams.set("monitor", "");
     else url.searchParams.delete("monitor");
     window.history.replaceState(null, "", url.toString().replace("monitor=", "monitor"));
-    document.title = monitor ? "Life/OS — Monitor" : "Life OS — Personal Command Center";
     const locked = monitor || useLife.getState().focus.active;
     if (monitor) {
       parkScroll();
@@ -359,6 +359,7 @@ export function LifeOS() {
       <Lab />
       <EditLayout />
       <Planner />
+      <LunchWatcher />
       <SparksLayer />
       <Intro />
       <Cursor />

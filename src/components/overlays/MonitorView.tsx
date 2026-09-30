@@ -15,6 +15,7 @@ import { audio } from "@/lib/audio";
 import { burst } from "@/lib/sparks";
 import { useNow } from "@/components/ui/hooks";
 import { Glyph } from "@/components/ui/Glyph";
+import { LunchMonitor } from "@/components/sections/Lunch";
 import { Hideable } from "@/components/ui/Hideable";
 import { startFocusSession } from "@/components/sections/Focus";
 import type { CalEvent } from "@/lib/types";
@@ -540,6 +541,9 @@ export function MonitorView() {
             ) : (
               <div className="mono mt-[3vh] text-faint">{location?.label ?? ""} · weather unavailable</div>
             )}
+            </Hideable>
+            <Hideable id="monitor.lunch">
+              <LunchMonitor />
             </Hideable>
           </div>
 

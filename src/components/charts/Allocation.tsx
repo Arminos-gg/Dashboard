@@ -60,8 +60,31 @@ export function Allocation({ totals, detail = true }: { totals: Record<ActivityK
         role="img"
         aria-label={`Time allocation: ${rows.map((r) => `${r.label} ${(r.min / 60).toFixed(1)} hours`).join(", ")}`}
       >
+        <defs>
+          <filter id="al-glow" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="4" />
+          </filter>
+        </defs>
+        {/* instrument scale: a tick every 10 % of the largest activity */}
+        {Array.from({ length: 31 }, (_, k) => {
+          const a = (k / 30) * SWEEP;
+          const major = k % 3 === 0;
+          const r0 = OUTER + 10;
+          const r1 = r0 + (major ? 7 : 3);
+          return (
+            <line
+              key={k}
+              x1={r0 * Math.sin(a)}
+              y1={-r0 * Math.cos(a)}
+              x2={r1 * Math.sin(a)}
+              y2={-r1 * Math.cos(a)}
+              stroke={major ? "var(--line-strong)" : "var(--line)"}
+            />
+          );
+        })}
         {rows.map((r, i) => {
           const rad = OUTER - i * STEP;
+          const a = angles[r.key];
           const dim = hover && hover !== r.key;
           return (
             <g
@@ -72,9 +95,22 @@ export function Allocation({ totals, detail = true }: { totals: Record<ActivityK
               data-cursor={r.label}
             >
               <circle r={rad} fill="none" stroke="var(--line)" />
-              <path d={arcPath(rad, angles[r.key])} fill="none" stroke="var(--accent)" strokeWidth={hover === r.key ? 5 : 3} style={{ transition: "stroke-width .3s" }} />
+              <path d={arcPath(rad, a)} fill="none" stroke="var(--accent)" strokeWidth={6} strokeOpacity={hover === r.key ? 0.7 : 0.35} filter="url(#al-glow)" strokeLinecap="round" />
+              <path
+                d={arcPath(rad, a)}
+                fill="none"
+                stroke="var(--accent)"
+                strokeWidth={hover === r.key ? 6 : 4}
+                strokeLinecap="round"
+                strokeOpacity={0.45 + 0.55 * (1 - i / rows.length)}
+                style={{ transition: "stroke-width .3s" }}
+              />
+              {a > 0.05 && <circle cx={rad * Math.sin(a)} cy={-rad * Math.cos(a)} r={hover === r.key ? 4 : 2.5} fill="var(--ink)" />}
               <circle r={rad} fill="none" stroke="transparent" strokeWidth={STEP} />
-              <line x1={0} x2={0} y1={-rad - 4} y2={-rad + 4} stroke="var(--line-strong)" />
+              {/* direct label in the open quadrant, right where the ring starts */}
+              <text x={-8} y={-rad + 3} textAnchor="end" fontSize={9} className="mono" letterSpacing="0.14em" fill={hover === r.key ? "var(--ink)" : "var(--faint)"}>
+                {r.label.split(" ")[0].toUpperCase()}
+              </text>
             </g>
           );
         })}
