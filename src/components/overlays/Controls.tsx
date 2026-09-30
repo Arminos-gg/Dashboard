@@ -7,10 +7,13 @@ import { MOODS } from "@/lib/mood";
 import { cloudConfigured } from "@/lib/sync";
 import { reverseGeocode } from "@/lib/weather";
 import { Glyph } from "@/components/ui/Glyph";
+import { ConfirmButton } from "@/components/ui/ConfirmButton";
+import { clearAllData, resetDemoData } from "@/lib/data-actions";
 import type { MoodKey } from "@/lib/types";
 
 const KEYS: [string[], string][] = [
   [["K"], "Capture anything"],
+  [["E"], "Planner — add & edit in a plain view"],
   [["F"], "Enter the focus chamber"],
   [["Space"], "Hold / resume focus"],
   [["Esc"], "Close · leave focus"],
@@ -21,7 +24,8 @@ const KEYS: [string[], string][] = [
   [["M"], "Cycle the mood engine"],
   [["S"], "Sound effects on / off"],
   [["Z"], "Undo"],
-  [["T"], "Feature lab — try everything"],
+  [["G"], "Monitor mode — for a second screen"],
+  [["T"], "Lab — display switches & feature tests"],
   [["?"], "This panel"],
 ];
 
@@ -138,27 +142,31 @@ export function Controls() {
                 </Row>
               </div>
 
-              <div className="mono flex flex-wrap gap-6">
+              <div className="mono flex flex-wrap items-center gap-4">
+                <button
+                  onClick={() => setUi({ shortcutsOpen: false, plannerOpen: true })}
+                  className="border border-[var(--line-strong)] px-3 py-2 text-ink transition-colors hover:border-[var(--accent)]"
+                >
+                  Open planner (E)
+                </button>
                 <button
                   onClick={() => {
-                    useLife.getState().resetDemo();
+                    resetDemoData();
                     setUi({ shortcutsOpen: false });
                   }}
                   className="text-faint transition-colors hover:text-ink"
                 >
-                  Reset demo universe
+                  Reset demo
                 </button>
-                <button
-                  onClick={() => {
-                    if (window.confirm("Start with an empty manifest? Your local data will be cleared.")) {
-                      useLife.getState().clearAll();
-                      setUi({ shortcutsOpen: false });
-                    }
+                <ConfirmButton
+                  onConfirm={() => {
+                    clearAllData();
+                    setUi({ shortcutsOpen: false });
                   }}
-                  className="text-faint transition-colors hover:text-ink"
+                  confirmLabel="Yes, delete everything"
                 >
-                  Start empty
-                </button>
+                  Clear all data
+                </ConfirmButton>
                 <Dialog.Close className="ml-auto text-ink">Close ✕</Dialog.Close>
               </div>
             </div>

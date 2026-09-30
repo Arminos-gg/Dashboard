@@ -10,7 +10,7 @@ import { directives, eventsOn, freeWindows } from "@/lib/agenda";
 import { dateKey, greeting, monthName, pad, weekday } from "@/lib/time";
 import { formatCoords } from "@/lib/weather";
 import { introDelay } from "@/lib/intro";
-import { reducedMotion } from "@/lib/pointer";
+import { calmMotion, usePref } from "@/lib/prefs";
 import { audio } from "@/lib/audio";
 import { burst } from "@/lib/sparks";
 import { useNow } from "@/components/ui/hooks";
@@ -163,6 +163,7 @@ export function NowSection() {
   const location = useLife((s) => s.location);
   const root = useRef<HTMLElement>(null);
   const echo = useRef<HTMLDivElement>(null);
+  const showEcho = usePref("echo");
 
   const minuteKey = Math.floor(now.getTime() / 60_000);
   const subline = useMemo(() => {
@@ -183,7 +184,7 @@ export function NowSection() {
   // intro choreography + parallax echo
   useLayoutEffect(() => {
     const el = root.current;
-    if (!el || reducedMotion()) return;
+    if (!el || calmMotion()) return;
     const ctx = gsap.context(() => {
       gsap.from("[data-now-in]", {
         opacity: 0,
@@ -192,7 +193,7 @@ export function NowSection() {
         duration: 1.6,
         ease: "expo.out",
         stagger: 0.09,
-        delay: introDelay,
+        delay: introDelay(),
       });
       if (echo.current) {
         gsap.to(echo.current, {
@@ -211,6 +212,7 @@ export function NowSection() {
         ref={echo}
         aria-hidden
         className="outline-text display pointer-events-none absolute -left-[3vw] bottom-[-4vw] select-none text-[clamp(160px,30vw,540px)] italic leading-none"
+        style={{ display: showEcho ? undefined : "none" }}
       >
         <AnimatePresence mode="wait">
           <motion.span

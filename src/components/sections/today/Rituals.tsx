@@ -103,11 +103,20 @@ export function Rituals({ now }: { now: Date }) {
           <span className="text-ink">{done}</span>/{habits.length} today · last 7 days
         </span>
       </div>
-      <div className="mt-8 grid grid-cols-3 gap-x-4 gap-y-10 sm:grid-cols-5 lg:grid-cols-3 xl:grid-cols-3">
-        {habits.map((h) => (
-          <Orbit key={h.id} habit={h} now={now} />
-        ))}
-      </div>
+      {habits.length === 0 ? (
+        <button
+          onClick={() => useLife.getState().setUi({ plannerOpen: true })}
+          className="display mt-8 block text-left text-[clamp(26px,2.6vw,40px)] text-faint transition-colors hover:text-muted"
+        >
+          No rituals yet — <em>add one in the Planner (E)</em>
+        </button>
+      ) : (
+        <div className="mt-8 grid grid-cols-3 gap-x-4 gap-y-10 sm:grid-cols-5 lg:grid-cols-3 xl:grid-cols-3">
+          {habits.map((h) => (
+            <Orbit key={h.id} habit={h} now={now} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -10,14 +10,8 @@ import { scrollToId } from "@/lib/scroll";
 import { scrollState } from "@/lib/pointer";
 import { cloudConfigured } from "@/lib/sync";
 import { useNow } from "@/components/ui/hooks";
+import { usePref, useVisibleSections } from "@/lib/prefs";
 import { Glyph } from "@/components/ui/Glyph";
-
-export const SECTIONS = [
-  { id: "now", label: "Now" },
-  { id: "today", label: "Agenda" },
-  { id: "telemetry", label: "Telemetry" },
-  { id: "focus", label: "Focus" },
-] as const;
 
 export function cycleMood() {
   const s = useLife.getState();
@@ -28,7 +22,7 @@ export function cycleMood() {
   s.pushLog(next ? `Mood pinned · ${MOODS[next].label}` : "Mood engine · auto");
 }
 
-function useActiveSection() {
+function useActiveSection(ids: string) {
   const [active, setActive] = useState<string>("now");
   useEffect(() => {
     const obs = new IntersectionObserver(
@@ -37,12 +31,12 @@ function useActiveSection() {
       },
       { rootMargin: "-45% 0px -50% 0px" },
     );
-    for (const s of SECTIONS) {
-      const el = document.getElementById(s.id);
+    for (const id of ids.split(",")) {
+      const el = document.getElementById(id);
       if (el) obs.observe(el);
     }
     return () => obs.disconnect();
-  }, []);
+  }, [ids]);
   return active;
 }
 
@@ -54,7 +48,10 @@ export function Chrome() {
   const sync = useLife((s) => s.syncStatus);
   const log = useLife((s) => s.log);
   const setUi = useLife((s) => s.setUi);
-  const active = useActiveSection();
+  const sections = useVisibleSections();
+  const active = useActiveSection(sections.map((s) => s.id).join(","));
+  const showRails = usePref("rails");
+  const showLog = usePref("log");
   const rail = useRef<HTMLDivElement>(null);
   const readout = useRef<HTMLSpanElement>(null);
 
@@ -70,7 +67,7 @@ export function Chrome() {
   }, []);
 
   // log lines expire on the clock's own one-second cadence
-  const recent = log.filter((l) => now.getTime() - l.at < 7000).slice(-3);
+  const recent = showLog ? log.filter((l) => now.getTime() - l.at < 7000).slice(-3) : [];
 
   return (
     <div className="pointer-events-none fixed inset-0 z-40 select-none" data-intro="chrome">
@@ -127,16 +124,34 @@ export function Chrome() {
           </button>
         </div>
 
-        <button
-          onClick={() => setUi({ captureOpen: true })}
-          className="mono pointer-events-auto hidden items-center gap-3 text-muted transition-colors hover:text-ink md:flex"
-          data-cursor="Capture"
-        >
-          <span className="kbd">K</span>
-          <span>Capture</span>
-          <span className="h-px w-16 bg-[var(--line-strong)]" />
-          <span className="normal-case tracking-normal text-faint">“remind me to…”</span>
-        </button>
+        <div className="hidden items-center gap-8 md:flex">
+          <button
+            onClick={() => setUi({ captureOpen: true })}
+            className="mono pointer-events-auto flex items-center gap-3 text-muted transition-colors hover:text-ink"
+            data-cursor="Capture"
+          >
+            <span className="kbd">K</span>
+            <span>Capture</span>
+            <span className="h-px w-12 bg-[var(--line-strong)]" />
+            <span className="hidden normal-case tracking-normal text-faint xl:inline">“remind me to…”</span>
+          </button>
+          <button
+            onClick={() => setUi({ plannerOpen: true })}
+            className="mono pointer-events-auto flex items-center gap-3 text-muted transition-colors hover:text-ink"
+            data-cursor="Planner"
+          >
+            <span className="kbd">E</span>
+            <span>Planner</span>
+          </button>
+          <button
+            onClick={() => setUi({ monitor: true })}
+            className="mono pointer-events-auto flex items-center gap-3 text-muted transition-colors hover:text-ink"
+            data-cursor="Monitor"
+          >
+            <span className="kbd">G</span>
+            <span>Monitor</span>
+          </button>
+        </div>
 
         <div className="mono flex items-center gap-5 text-right">
           <span className="hidden items-center gap-2 lg:flex" title={ai?.model ?? "Local interpreter"}>
@@ -167,6 +182,7 @@ export function Chrome() {
       </div>
 
       {/* left rail: scroll telemetry */}
+      {showRails && (
       <div className="absolute left-[calc(var(--gutter)*0.5)] top-1/2 hidden -translate-y-1/2 flex-col items-center gap-4 lg:flex">
         <div className="relative h-[34vh] w-px bg-[var(--line)]">
           <div ref={rail} className="absolute inset-x-0 top-0 h-full origin-top bg-[var(--accent)]" />
@@ -178,13 +194,15 @@ export function Chrome() {
           Depth <span ref={readout}>000</span>
         </span>
       </div>
+      )}
 
       {/* right rail: section index */}
+      {showRails && (
       <nav
         className="pointer-events-auto absolute right-[var(--gutter)] top-1/2 hidden -translate-y-1/2 flex-col items-end gap-3 md:flex"
         aria-label="Sections"
       >
-        {SECTIONS.map((s, i) => {
+        {sections.map((s, i) => {
           const on = active === s.id;
           return (
             <button
@@ -209,6 +227,7 @@ export function Chrome() {
           );
         })}
       </nav>
+      )}
 
       {/* bottom-right: telemetry log + shortcuts */}
       <div className="absolute bottom-6 right-[var(--gutter)] flex flex-col items-end gap-2 md:bottom-7">
@@ -240,6 +259,12 @@ export function Chrome() {
             aria-label="Capture"
           >
             <Glyph name="capture" size={16} /> Capture
+          </button>
+          <button
+            onClick={() => setUi({ plannerOpen: true })}
+            className="mono pointer-events-auto flex items-center gap-2 text-muted md:hidden"
+          >
+            Planner
           </button>
           <button
             onClick={() => setUi({ labOpen: !useLife.getState().labOpen })}

@@ -101,7 +101,7 @@ export function MorphChart({
   const [size, setSize] = useState({ w: 960, h: 480 });
 
   const niceMax = useMemo(() => {
-    const m = Math.max(1e-6, d3.max(values) ?? 0, avg ? (d3.max(avg) ?? 0) : 0);
+    const m = Math.max(1, d3.max(values) ?? 0, avg ? (d3.max(avg) ?? 0) : 0);
     return d3.scaleLinear().domain([0, m * 1.08]).nice(4).domain()[1] || 1;
   }, [values, avg]);
 

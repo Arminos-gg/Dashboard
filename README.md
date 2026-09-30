@@ -41,7 +41,30 @@ information laid out spatially — a time ribbon, a dial, an orbit — instead o
 | `Esc` | Close · leave focus | `M` | Cycle mood (auto → pinned) |
 | `1`–`4` | Jump to section | `S` | Sound effects on/off |
 | `Z` / `⌘Z` | Undo | `?` | Controls & settings |
-| `T` | **Lab** — trigger every feature | | |
+| `T` | **Lab** — display switches & feature tests | `E` | **Planner** — plain add/edit view |
+| `G` | **Monitor mode** (second screen) | | |
+
+### Planner (`E`)
+
+A calm, legible full-screen editor for when the cinematic view is too much: quick-add in plain language, forms and
+inline editing for tasks, events and habits (tick any of the last seven days), plus a **Data** tab with export/import
+backups, *Reset demo* and **Clear all data** (two-step confirm; display settings are kept).
+
+### Monitor mode (`G`)
+
+A glanceable, no-scroll layout for a second screen: huge clock and date, weather, *now / next / later*, the rest of
+the day as a timeline, the three priorities, rituals and a rotating "what now" suggestion. A running focus session
+takes over the right column. A toolbar (fades when the mouse rests) offers Bright / Dim / Night, seconds on/off,
+background effects on/off, **Keep awake** (Screen Wake Lock), fullscreen, capture and the planner. The layout drifts a
+few pixels each minute to spare OLED panels. Open **`/?monitor`** to land in it directly — bookmark that on the second
+screen. Tabs stay in sync, so anything you change on your main screen appears on the monitor within a moment.
+
+### Display switches (Lab → Display & features)
+
+Turn individual pieces on or off — animated background, particles, 3D rings, calm motion, custom cursor, boot intro,
+outline words, sound effects, side rails, activity log — and hide whole sections (Now, Agenda, Telemetry, Focus).
+Presets: *Everything*, *Performance* (no WebGL, calm motion) and *Minimal*. With all three WebGL layers off, no GPU
+context is created at all.
 
 Press `T` (or the **Lab** button, bottom right) to open the feature lab: switch moods, add or clear load,
 file sample captures, start a 1-minute focus session or jump to its completion, play each soundscape,

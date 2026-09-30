@@ -13,7 +13,61 @@ import { requestBriefing } from "@/lib/briefing-runner";
 import { dateKey } from "@/lib/time";
 import { startFocusSession, SOUNDSCAPES } from "@/components/sections/Focus";
 import { Glyph } from "@/components/ui/Glyph";
-import type { Weather } from "@/lib/types";
+import { ConfirmButton } from "@/components/ui/ConfirmButton";
+import { clearAllData, resetDemoData } from "@/lib/data-actions";
+import type { Prefs, Weather } from "@/lib/types";
+import { PRESETS, SECTION_PREFS, setPrefs, usePref } from "@/lib/prefs";
+
+/** A square on/off switch — a plain labelled checkbox underneath. */
+function Toggle({ label, hint, pref }: { label: string; hint?: string; pref: keyof Prefs }) {
+  const on = usePref(pref) as boolean;
+  const others = useLife((st) => SECTION_PREFS.filter((x) => x.pref !== pref && (st.prefs?.[x.pref] ?? true)).length);
+  // never let the last visible section be switched off
+  const locked = pref.startsWith("section") && on && others === 0;
+  return (
+    <label className={`flex items-center justify-between gap-3 border-b border-[var(--line)] py-2 ${locked ? "opacity-50" : "cursor-pointer"}`}>
+      <span className="min-w-0">
+        <span className="block text-[14px] text-ink">{label}</span>
+        {hint && <span className="block text-[11.5px] leading-tight text-faint">{hint}</span>}
+      </span>
+      <input
+        type="checkbox"
+        role="switch"
+        checked={on}
+        disabled={locked}
+        onChange={(e) => setPrefs({ [pref]: e.target.checked } as Partial<Prefs>)}
+        className="peer sr-only"
+      />
+      <span
+        aria-hidden
+        className="relative h-[18px] w-[34px] shrink-0 border transition-colors peer-focus-visible:outline peer-focus-visible:outline-1 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--accent)]"
+        style={{ borderColor: on ? "var(--accent)" : "var(--line-strong)", background: on ? "color-mix(in oklab, var(--accent) 22%, transparent)" : "transparent" }}
+      >
+        <span
+          className="absolute top-[3px] h-[10px] w-[10px] transition-all duration-200"
+          style={{ left: on ? 19 : 3, background: on ? "var(--accent)" : "var(--muted)" }}
+        />
+      </span>
+    </label>
+  );
+}
+
+function SfxToggle() {
+  const on = useLife((st) => st.sfx);
+  return (
+    <label className="flex cursor-pointer items-center justify-between gap-3 border-b border-[var(--line)] py-2">
+      <span className="block text-[14px] text-ink">Sound effects</span>
+      <input type="checkbox" role="switch" checked={on} onChange={(e) => useLife.getState().setSfx(e.target.checked)} className="peer sr-only" />
+      <span
+        aria-hidden
+        className="relative h-[18px] w-[34px] shrink-0 border transition-colors peer-focus-visible:outline peer-focus-visible:outline-1 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--accent)]"
+        style={{ borderColor: on ? "var(--accent)" : "var(--line-strong)", background: on ? "color-mix(in oklab, var(--accent) 22%, transparent)" : "transparent" }}
+      >
+        <span className="absolute top-[3px] h-[10px] w-[10px] transition-all duration-200" style={{ left: on ? 19 : 3, background: on ? "var(--accent)" : "var(--muted)" }} />
+      </span>
+    </label>
+  );
+}
 
 const LAB_TAG = "lab";
 
@@ -164,6 +218,56 @@ export function Lab() {
           </div>
 
           <div className="mt-6">
+            <section className="border-t border-[var(--line)] py-5">
+              <div className="mono text-muted">Second screen</div>
+              <button
+                onClick={() => setUi({ labOpen: false, monitor: true })}
+                className="mt-3 flex w-full items-center justify-between gap-4 border border-[var(--accent)] px-4 py-3 text-left transition-colors hover:bg-[color-mix(in_oklab,var(--accent)_12%,transparent)]"
+              >
+                <span>
+                  <span className="block text-[15px] text-ink">Open monitor mode</span>
+                  <span className="block text-[12px] text-faint">Glanceable, no scrolling — bookmark /?monitor for your 2nd screen</span>
+                </span>
+                <span className="kbd">G</span>
+              </button>
+            </section>
+
+            <section className="border-t border-[var(--line)] py-5">
+              <div className="mono flex items-baseline justify-between text-muted">
+                <span>Display & features</span>
+                <span className="text-faint normal-case tracking-normal" style={{ fontSize: 11 }}>saved in this browser</span>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {PRESETS.map((p) => (
+                  <Btn key={p.name} onClick={() => { setPrefs(p.patch); log(`display preset · ${p.name}`); }} label={p.hint}>
+                    {p.name}
+                  </Btn>
+                ))}
+              </div>
+              <div className="mono mt-5 text-faint">Effects</div>
+              <div className="mt-1">
+                <Toggle pref="field" label="Animated background" hint="the flowing colour field" />
+                <Toggle pref="particles" label="Particles" />
+                <Toggle pref="rings" label="3D rings" />
+                <Toggle pref="calm" label="Calm motion" hint="fewer animations, no bursts" />
+                <Toggle pref="cursor" label="Custom cursor" hint="off = normal system pointer" />
+                <Toggle pref="intro" label="Boot intro" hint="the startup sequence" />
+                <Toggle pref="echo" label="Giant outline words" />
+                <SfxToggle />
+              </div>
+              <div className="mono mt-5 text-faint">Interface</div>
+              <div className="mt-1">
+                <Toggle pref="rails" label="Side rails" hint="scroll depth + section index" />
+                <Toggle pref="log" label="Activity log" hint="the small messages bottom-right" />
+              </div>
+              <div className="mono mt-5 text-faint">Sections</div>
+              <div className="mt-1">
+                {SECTION_PREFS.map((x) => (
+                  <Toggle key={x.pref} pref={x.pref} label={x.label} />
+                ))}
+              </div>
+            </section>
+
             <Group title="Mood engine" hint={`now: ${MOODS[mood.key].label}${mood.overridden ? " (pinned)" : " (auto)"}`}>
               <Btn active={override === null} onClick={() => { s().setMoodOverride(null); log("mood · auto"); }}>
                 Auto
@@ -258,9 +362,13 @@ export function Lab() {
               <Btn onClick={() => { if (s().undo()) log("undone"); }}>
                 <Glyph name="undo" size={14} /> Undo
               </Btn>
-              <Btn onClick={() => { s().resetDemo(); log("demo universe reset"); }}>
+              <Btn onClick={() => setUi({ labOpen: false, plannerOpen: true })}>Open planner (E)</Btn>
+              <Btn onClick={() => resetDemoData()}>
                 <Glyph name="reset" size={14} /> Reset demo
               </Btn>
+              <ConfirmButton onConfirm={clearAllData} confirmLabel="Yes, delete everything">
+                <Glyph name="close" size={13} /> Clear all data
+              </ConfirmButton>
             </Group>
           </div>
         </motion.aside>

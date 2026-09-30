@@ -128,3 +128,24 @@ export interface CaptureResult {
   notes: string | null;
   source: "claude" | "local";
 }
+
+/** Display preferences — which effects, HUD pieces and sections are shown. */
+export interface Prefs {
+  field: boolean;
+  particles: boolean;
+  rings: boolean;
+  cursor: boolean;
+  intro: boolean;
+  echo: boolean;
+  calm: boolean;
+  rails: boolean;
+  log: boolean;
+  sectionNow: boolean;
+  sectionToday: boolean;
+  sectionTelemetry: boolean;
+  sectionFocus: boolean;
+  /** monitor mode */
+  monitorDim: 0 | 1 | 2;
+  monitorSeconds: boolean;
+  monitorWake: boolean;
+}

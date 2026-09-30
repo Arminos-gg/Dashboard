@@ -15,7 +15,7 @@ import { startCloudSync } from "@/lib/sync";
 import { fetchWeather, locationFromTimeZone } from "@/lib/weather";
 import { mountSparks } from "@/lib/sparks";
 import { audio } from "@/lib/audio";
-import { Chrome, cycleMood, SECTIONS } from "./hud/Chrome";
+import { Chrome, cycleMood } from "./hud/Chrome";
 import { Cursor } from "./hud/Cursor";
 import { Intro } from "./hud/Intro";
 import { NowSection } from "./sections/Now";
@@ -26,6 +26,11 @@ import { FocusOverlay } from "./overlays/FocusOverlay";
 import { QuickCapture } from "./overlays/QuickCapture";
 import { Controls } from "./overlays/Controls";
 import { Lab } from "./overlays/Lab";
+import { Planner } from "./overlays/Planner";
+import { MonitorView } from "./overlays/MonitorView";
+import { getPref, SECTION_PREFS, usePref, useVisibleSections } from "@/lib/prefs";
+import { lockScroll } from "@/lib/scroll";
+import type { PersistedLife } from "@/lib/store";
 
 const Background = dynamic(() => import("./scene/Background"), { ssr: false });
 
@@ -73,6 +78,45 @@ export function LifeOS() {
   const location = useLife((s) => s.location);
   const ai = useLife((s) => s.ai);
   const hasWeather = useLife((s) => !!s.weather || s.weatherFailed);
+  const monitor = useLife((s) => s.monitor);
+  const calm = usePref("calm");
+  const rails = usePref("rails");
+  const sections = useVisibleSections();
+  const show = (id: string) => sections.some((s) => s.id === id);
+
+  // monitor mode is addressable: /?monitor opens straight into it (bookmark it on a second screen)
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).has("monitor")) useLife.getState().setUi({ monitor: true });
+  }, []);
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (monitor) url.searchParams.set("monitor", "");
+    else url.searchParams.delete("monitor");
+    window.history.replaceState(null, "", url.toString().replace("monitor=", "monitor"));
+    document.title = monitor ? "Life/OS — Monitor" : "Life OS — Personal Command Center";
+    if (monitor) window.scrollTo(0, 0);
+    lockScroll(monitor || useLife.getState().focus.active);
+  }, [monitor]);
+
+  // the section index on the right reserves space only while it is shown
+  useEffect(() => {
+    document.documentElement.dataset.rails = rails ? "on" : "off";
+  }, [rails]);
+
+  // keep tabs in step: a change made in one window (say the main screen) shows up in the other (the monitor)
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== "life-os" || !e.newValue) return;
+      try {
+        const incoming = (JSON.parse(e.newValue) as { state?: PersistedLife }).state;
+        if (incoming && incoming.updatedAt > useLife.getState().updatedAt) void useLife.persist.rehydrate();
+      } catch {
+        /* ignore malformed writes */
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
 
   // runtimes
   useEffect(() => {
@@ -143,8 +187,21 @@ export function LifeOS() {
         undo();
         return;
       }
-      if (typing || s.captureOpen || s.shortcutsOpen || mod || e.altKey) return;
+      if (typing || s.captureOpen || s.shortcutsOpen || s.plannerOpen || mod || e.altKey) return;
 
+      if (e.key.toLowerCase() === "g") {
+        s.setUi({ monitor: !s.monitor, labOpen: false });
+        return;
+      }
+      if (e.key === "Escape" && s.monitor) {
+        s.setUi({ monitor: false });
+        return;
+      }
+      if (e.key.toLowerCase() === "e" && !s.focus.active) {
+        e.preventDefault();
+        s.setUi({ plannerOpen: true, labOpen: false });
+        return;
+      }
       if (e.key.toLowerCase() === "t") {
         s.setUi({ labOpen: !s.labOpen });
         return;
@@ -173,7 +230,10 @@ export function LifeOS() {
         e.preventDefault();
         s.setUi({ captureOpen: true });
       } else if (k === "f") startFocusSession(25);
-      else if (["1", "2", "3", "4"].includes(k)) scrollToId(SECTIONS[Number(k) - 1].id);
+      else if (["1", "2", "3", "4"].includes(k) && !s.monitor) {
+        const target = SECTION_PREFS.filter((x) => getPref(x.pref))[Number(k) - 1];
+        if (target) scrollToId(target.id);
+      }
       else if (k === "n") window.dispatchEvent(new Event("lifeos:next-directive"));
       else if (k === "b") void requestBriefing(currentMood(), true);
       else if (k === "v") window.dispatchEvent(new Event("lifeos:flip-chart"));
@@ -192,20 +252,27 @@ export function LifeOS() {
   }, []);
 
   return (
-    <MotionConfig reducedMotion="user">
+    <MotionConfig reducedMotion={calm ? "always" : "user"}>
       <Background />
-      <main className="relative z-10">
-        <NowSection />
-        <TodaySection />
-        <StatsSection />
-        <FocusSection />
-        <Colophon />
-      </main>
-      <Chrome />
+      {monitor ? (
+        <MonitorView />
+      ) : (
+        <>
+          <main className="relative z-10">
+            {show("now") && <NowSection />}
+            {show("today") && <TodaySection />}
+            {show("telemetry") && <StatsSection />}
+            {show("focus") && <FocusSection />}
+            <Colophon />
+          </main>
+          <Chrome />
+        </>
+      )}
       <FocusOverlay />
       <QuickCapture />
       <Controls />
       <Lab />
+      <Planner />
       <SparksLayer />
       <Intro />
       <Cursor />

@@ -3,12 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import * as Slider from "@radix-ui/react-slider";
-import { focusElapsed, useLife } from "@/lib/store";
+import { useLife } from "@/lib/store";
 import { audio } from "@/lib/audio";
 import { lockScroll } from "@/lib/scroll";
-import { burst } from "@/lib/sparks";
+import { useFocusClock } from "@/lib/useFocusClock";
 import { pad } from "@/lib/time";
-import { useNow } from "@/components/ui/hooks";
 import { Glyph } from "@/components/ui/Glyph";
 import { SOUNDSCAPES } from "@/components/sections/Focus";
 
@@ -54,27 +53,11 @@ function Visualizer() {
 }
 
 function Chamber() {
-  const now = useNow(250);
-  const focus = useLife((s) => s.focus);
   const soundscape = useLife((s) => s.soundscape);
   const volume = useLife((s) => s.volume);
   const s = useLife.getState();
-  const done = focus.completed ?? null;
   const [soundOn, setSoundOn] = useState(() => audio.playing != null);
-  const elapsed = Math.min(focusElapsed(focus, now.getTime()), focus.durationMs);
-  const remaining = Math.max(0, focus.durationMs - elapsed);
-  const progress = focus.durationMs ? elapsed / focus.durationMs : 0;
-  const paused = !focus.runningSince;
-  const mins = Math.floor(remaining / 60_000);
-  const secs = Math.floor((remaining % 60_000) / 1000);
-
-  useEffect(() => {
-    if (remaining > 0 || done != null) return;
-    useLife.getState().endFocus(true);
-    audio.chime(523.25);
-    window.setTimeout(() => audio.chime(784), 280);
-    burst(window.innerWidth / 2, window.innerHeight / 2, 60, 1.8);
-  }, [remaining, done]);
+  const { focus, done, progress, paused, mins, secs } = useFocusClock();
 
   const R = 44; // vmin
   const C = 2 * Math.PI * R;
@@ -229,11 +212,14 @@ function Chamber() {
 }
 
 export function FocusOverlay() {
-  const active = useLife((s) => s.focus.active);
+  const focusActive = useLife((s) => s.focus.active);
+  // monitor mode shows its own compact timer instead of the full-screen chamber
+  const monitor = useLife((s) => s.monitor);
+  const active = focusActive && !monitor;
   useEffect(() => {
     document.documentElement.dataset.focus = active ? "on" : "off";
-    lockScroll(active);
-  }, [active]);
+    if (!monitor) lockScroll(active);
+  }, [active, monitor]);
 
   return (
     <AnimatePresence>

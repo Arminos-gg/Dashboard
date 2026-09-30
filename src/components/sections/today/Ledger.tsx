@@ -179,7 +179,7 @@ export function Ledger({ now }: { now: Date }) {
       {list.length === 0 ? (
         <div className="py-16 text-center">
           <p className="display text-[40px] text-faint">
-            Nothing here. <em>Press K to capture.</em>
+            Nothing here. <em>Press K to capture, or E for the planner.</em>
           </p>
         </div>
       ) : draggable ? (

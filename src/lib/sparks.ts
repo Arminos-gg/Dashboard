@@ -1,5 +1,7 @@
 "use client";
 
+import { calmMotion } from "./prefs";
+
 /** Hairline spark bursts drawn on a single overlay canvas. */
 interface Spark {
   x: number;
@@ -66,7 +68,7 @@ function frame() {
 
 export function burst(x: number, y: number, count = 22, power = 1) {
   if (typeof window === "undefined") return;
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  if (calmMotion()) return;
   color = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#fff";
   for (let i = 0; i < count; i++) {
     const a = (i / count) * Math.PI * 2 + Math.random() * 0.4;

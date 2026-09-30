@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { pointer } from "@/lib/pointer";
+import { useLife } from "@/lib/store";
+import { usePref } from "@/lib/prefs";
 
 /**
  * A reticle that trails the pointer with inertia and stretches along its velocity
@@ -15,6 +17,15 @@ export function Cursor() {
     () => typeof window !== "undefined" && window.matchMedia("(pointer: fine)").matches,
   );
   const hover = useRef(false);
+  // the planner is a working surface: give it the ordinary system cursor
+  const cursorPref = usePref("cursor");
+  const busy = useLife((s) => s.plannerOpen || s.monitor);
+  const plain = busy || !cursorPref;
+
+  useEffect(() => {
+    if (!enabled) return;
+    document.documentElement.classList.toggle("cursor-on", !plain);
+  }, [enabled, plain]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -60,7 +71,7 @@ export function Cursor() {
     };
   }, [enabled]);
 
-  if (!enabled) return null;
+  if (!enabled || plain) return null;
 
   return (
     <>

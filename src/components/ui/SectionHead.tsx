@@ -4,7 +4,7 @@ import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { SplitText } from "gsap/SplitText";
-import { reducedMotion } from "@/lib/pointer";
+import { calmMotion, usePref } from "@/lib/prefs";
 
 gsap.registerPlugin(ScrollTrigger, SplitText);
 
@@ -26,10 +26,11 @@ export function SectionHead({
   echo?: string;
 }) {
   const root = useRef<HTMLDivElement>(null);
+  const showEcho = usePref("echo");
 
   useLayoutEffect(() => {
     const el = root.current;
-    if (!el || reducedMotion()) return;
+    if (!el || calmMotion()) return;
     const ctx = gsap.context(() => {
       const h = el.querySelector("h2");
       if (h) {
@@ -70,7 +71,7 @@ export function SectionHead({
 
   return (
     <div ref={root} className="relative">
-      {echo && (
+      {echo && showEcho && (
         <div
           data-echo
           aria-hidden

@@ -39,6 +39,9 @@
   :root {
     --rail: 92px;
   }
+  html[data-rails="off"] {
+    --rail: 0px;
+  }
 }
 
 html,
@@ -159,6 +162,33 @@ html.lenis body {
       linear-gradient(var(--c), var(--c)) bottom left / 1px var(--b) no-repeat,
       linear-gradient(var(--c), var(--c)) bottom right / var(--b) 1px no-repeat,
       linear-gradient(var(--c), var(--c)) bottom right / 1px var(--b) no-repeat;
+  }
+
+  /* plain, legible form controls for the planner */
+  .field {
+    min-width: 0;
+    border: 1px solid var(--line-strong);
+    background: rgb(255 255 255 / 0.035);
+    padding: 0 12px;
+    font-size: 15px;
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .field:focus,
+  .field:focus-visible {
+    border-color: var(--accent);
+    outline: none;
+  }
+  .field::placeholder {
+    color: var(--faint);
+  }
+  .field:disabled {
+    opacity: 0.4;
+  }
+  select.field option {
+    background: #111113;
+    color: var(--ink);
   }
 
   .kbd {

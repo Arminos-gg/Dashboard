@@ -8,10 +8,12 @@ import { useMemo, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { fieldFragment, fieldVertex, particlesFragment, particlesVertex } from "./shaders";
-import { pointer, reducedMotion, scrollState } from "@/lib/pointer";
+import { pointer, scrollState } from "@/lib/pointer";
+import { calmMotion, usePref } from "@/lib/prefs";
 import { moodLive } from "@/lib/mood-live";
 
-const TEMPO = reducedMotion() ? 0.15 : 1;
+/** Slower field and particles under OS reduced-motion or the Calm motion switch. */
+const tempo = () => (calmMotion() ? 0.15 : 1);
 
 const setSrgb = (c: THREE.Color, v: { r: number; g: number; b: number }) => c.setRGB(v.r, v.g, v.b, THREE.SRGBColorSpace);
 
@@ -37,7 +39,7 @@ function Field() {
 
   useFrame((_, dt) => {
     const u = uniforms;
-    u.uTime.value += Math.min(dt, 0.05) * (0.35 + moodLive.energy * 1.6) * TEMPO;
+    u.uTime.value += Math.min(dt, 0.05) * (0.35 + moodLive.energy * 1.6) * tempo();
     u.uEnergy.value = moodLive.energy;
     u.uVel.value += (pointer.speed - u.uVel.value) * 0.12;
     u.uScroll.value = scrollState.y / Math.max(1, window.innerHeight);
@@ -101,7 +103,7 @@ function Particles({ count }: { count: number }) {
 
   useFrame((_, dt) => {
     const u = uniforms;
-    u.uTime.value += Math.min(dt, 0.05) * (0.25 + moodLive.energy * 1.9) * TEMPO;
+    u.uTime.value += Math.min(dt, 0.05) * (0.25 + moodLive.energy * 1.9) * tempo();
     u.uVel.value += (pointer.speed - u.uVel.value) * 0.15;
     u.uPixelRatio.value = viewport.dpr;
     u.uScroll.value = scrollState.y / Math.max(1, window.innerHeight);
@@ -223,7 +225,12 @@ function CameraRig() {
 }
 
 export default function Background() {
+  const field = usePref("field");
+  const particles = usePref("particles");
+  const rings = usePref("rings");
   const count = typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches ? 900 : 2400;
+  // with every layer switched off there is no reason to keep a GPU context alive
+  if (!field && !particles && !rings) return <div className="pointer-events-none fixed inset-0 z-0 bg-[var(--void)]" aria-hidden />;
   return (
     <div className="pointer-events-none fixed inset-0 z-0" aria-hidden>
       <Canvas
@@ -232,9 +239,9 @@ export default function Background() {
         camera={{ position: [0, 0, 7], fov: 45 }}
         onCreated={({ gl }) => gl.setClearColor("#050506")}
       >
-        <Field />
-        <Particles count={count} />
-        <Rings />
+        {field && <Field />}
+        {particles && <Particles count={count} />}
+        {rings && <Rings />}
         <CameraRig />
       </Canvas>
     </div>

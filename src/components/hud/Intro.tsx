@@ -2,7 +2,7 @@
 
 import { useLayoutEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
-import { firstBoot } from "@/lib/intro";
+import { playIntro } from "@/lib/intro";
 import { useMood } from "@/lib/useMood";
 
 /** Boot sequence: a hairline draws the horizon, telemetry checks in, then the curtain lifts. */
@@ -16,7 +16,7 @@ export function Intro() {
     if (!el) return;
     const ctx = gsap.context(() => {
       const tl = gsap.timeline({ onComplete: () => setGone(true) });
-      if (!firstBoot) {
+      if (!playIntro()) {
         tl.to(el, { opacity: 0, duration: 0.7, ease: "power2.out", delay: 0.05 });
         return;
       }

@@ -18,6 +18,7 @@ import type {
   SoundKey,
   Task,
   Weather,
+  Prefs,
 } from "./types";
 import { seedUniverse } from "./seed";
 import { addDays, atTime, dateKey, fromDateKey, relativeDay, uid } from "./time";
@@ -37,6 +38,7 @@ export interface PersistedLife {
   sfx: boolean;
   briefing: Briefing | null;
   location: GeoLocation | null;
+  prefs: Prefs;
   lastActive: string;
   updatedAt: number;
 }
@@ -53,6 +55,8 @@ interface Ephemeral {
   captureOpen: boolean;
   shortcutsOpen: boolean;
   labOpen: boolean;
+  plannerOpen: boolean;
+  monitor: boolean;
   highlightId: string | null;
   briefingBusy: boolean;
   undoStack: Snapshot[];
@@ -66,9 +70,11 @@ interface Actions {
   reorderOpen: (ids: string[]) => void;
   addEvent: (e: Omit<CalEvent, "id">) => string;
   removeEvent: (id: string) => void;
+  updateEvent: (id: string, patch: Partial<CalEvent>) => void;
   toggleHabit: (id: string, day?: string) => boolean;
   addHabit: (name: string, glyph?: HabitGlyph) => string;
   removeHabit: (id: string) => void;
+  updateHabit: (id: string, patch: Partial<Habit>) => void;
   commitCapture: (r: CaptureResult) => { id: string; kind: CaptureResult["kind"]; label: string };
   setMoodOverride: (m: MoodKey | null) => void;
   startFocus: (minutes: number, taskId?: string, intention?: string) => void;
@@ -88,14 +94,34 @@ interface Actions {
   undo: () => boolean;
   ensureToday: (now?: Date) => void;
   resetDemo: () => void;
+  setPrefs: (patch: Partial<Prefs>) => void;
   clearAll: () => void;
   applyRemote: (p: Partial<PersistedLife>) => void;
   setUi: (
-    patch: Partial<Pick<Ephemeral, "captureOpen" | "shortcutsOpen" | "labOpen" | "highlightId" | "syncStatus" | "ai" | "briefingBusy">>,
+    patch: Partial<Pick<Ephemeral, "captureOpen" | "shortcutsOpen" | "labOpen" | "plannerOpen" | "monitor" | "highlightId" | "syncStatus" | "ai" | "briefingBusy">>,
   ) => void;
 }
 
 export type LifeStore = PersistedLife & Ephemeral & Actions;
+
+export const DEFAULT_PREFS: Prefs = {
+  field: true,
+  particles: true,
+  rings: true,
+  cursor: true,
+  intro: true,
+  echo: true,
+  calm: false,
+  rails: true,
+  log: true,
+  sectionNow: true,
+  sectionToday: true,
+  sectionTelemetry: true,
+  sectionFocus: true,
+  monitorDim: 0,
+  monitorSeconds: true,
+  monitorWake: false,
+};
 
 const idleFocus: FocusState = { active: false, runningSince: null, elapsed: 0, durationMs: 25 * 60_000 };
 
@@ -112,6 +138,7 @@ function freshUniverse(): PersistedLife {
     sfx: true,
     briefing: null,
     location: null,
+    prefs: DEFAULT_PREFS,
     lastActive: dateKey(),
     updatedAt: Date.now(),
   };
@@ -119,7 +146,7 @@ function freshUniverse(): PersistedLife {
 
 export const PERSIST_KEYS: (keyof PersistedLife)[] = [
   "profileName", "tasks", "events", "habits", "history", "sessions", "focus", "moodOverride",
-  "soundscape", "volume", "sfx", "briefing", "location", "lastActive", "updatedAt",
+  "soundscape", "volume", "sfx", "briefing", "location", "prefs", "lastActive", "updatedAt",
 ];
 
 export function pickPersisted(s: LifeStore): PersistedLife {
@@ -168,6 +195,8 @@ export const useLife = create<LifeStore>()(
         captureOpen: false,
         shortcutsOpen: false,
         labOpen: false,
+        plannerOpen: false,
+        monitor: false,
         highlightId: null,
         briefingBusy: false,
         undoStack: [],
@@ -232,6 +261,13 @@ export const useLife = create<LifeStore>()(
 
         removeEvent: (id) => mutate((s) => ({ events: s.events.filter((e) => e.id !== id) })),
 
+        updateEvent: (id, patch) =>
+          mutate((s) => ({
+            events: s.events
+              .map((e) => (e.id === id ? { ...e, ...patch } : e))
+              .sort((a, b) => a.start.localeCompare(b.start)),
+          })),
+
         toggleHabit: (id, day = dateKey()) => {
           let on = false;
           mutate((s) => ({
@@ -254,6 +290,9 @@ export const useLife = create<LifeStore>()(
         },
 
         removeHabit: (id) => mutate((s) => ({ habits: s.habits.filter((h) => h.id !== id) })),
+
+        updateHabit: (id, patch) =>
+          mutate((s) => ({ habits: s.habits.map((h) => (h.id === id ? { ...h, ...patch } : h)) })),
 
         commitCapture: (r) => {
           const api = get();
@@ -369,18 +408,26 @@ export const useLife = create<LifeStore>()(
           set({ history, lastActive: today, briefing: null, updatedAt: Date.now() });
         },
 
-        resetDemo: () => set({ ...freshUniverse(), undoStack: [], log: [] }),
+        // display preferences are settings, not data: both resets keep them
+        resetDemo: () => set((s) => ({ ...freshUniverse(), prefs: s.prefs, undoStack: [], log: [] })),
 
+        setPrefs: (patch) => set((s) => ({ prefs: { ...DEFAULT_PREFS, ...s.prefs, ...patch }, updatedAt: Date.now() })),
+
+        /** Wipes every record — tasks, events, habits, history, sessions, briefing and settings. */
         clearAll: () =>
-          set({
+          set((s) => ({
             ...freshUniverse(),
             tasks: [],
             events: [],
             habits: [],
             history: {},
+            sessions: [],
+            briefing: null,
             undoStack: [],
             log: [],
-          }),
+            highlightId: null,
+            prefs: s.prefs,
+          })),
 
         applyRemote: (p) => set({ ...p }),
 
