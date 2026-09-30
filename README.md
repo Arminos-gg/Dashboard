@@ -41,6 +41,12 @@ information laid out spatially — a time ribbon, a dial, an orbit — instead o
 | `Esc` | Close · leave focus | `M` | Cycle mood (auto → pinned) |
 | `1`–`4` | Jump to section | `S` | Sound effects on/off |
 | `Z` / `⌘Z` | Undo | `?` | Controls & settings |
+| `T` | **Lab** — trigger every feature | | |
+
+Press `T` (or the **Lab** button, bottom right) to open the feature lab: switch moods, add or clear load,
+file sample captures, start a 1-minute focus session or jump to its completion, play each soundscape,
+fake clear/storm/snow weather, morph the chart, and fire spark bursts — all without touching real data
+(lab tasks are tagged `#lab`, most changes undo with `Z`).
 
 ## Stack
 

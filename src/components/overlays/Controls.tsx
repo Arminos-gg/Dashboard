@@ -21,6 +21,7 @@ const KEYS: [string[], string][] = [
   [["M"], "Cycle the mood engine"],
   [["S"], "Sound effects on / off"],
   [["Z"], "Undo"],
+  [["T"], "Feature lab — try everything"],
   [["?"], "This panel"],
 ];
 

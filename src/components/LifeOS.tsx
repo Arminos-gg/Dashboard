@@ -25,6 +25,7 @@ import { FocusSection, startFocusSession } from "./sections/Focus";
 import { FocusOverlay } from "./overlays/FocusOverlay";
 import { QuickCapture } from "./overlays/QuickCapture";
 import { Controls } from "./overlays/Controls";
+import { Lab } from "./overlays/Lab";
 
 const Background = dynamic(() => import("./scene/Background"), { ssr: false });
 
@@ -144,6 +145,15 @@ export function LifeOS() {
       }
       if (typing || s.captureOpen || s.shortcutsOpen || mod || e.altKey) return;
 
+      if (e.key.toLowerCase() === "t") {
+        s.setUi({ labOpen: !s.labOpen });
+        return;
+      }
+      if (e.key === "Escape" && s.labOpen) {
+        s.setUi({ labOpen: false });
+        return;
+      }
+
       if (s.focus.active) {
         if (e.key === " ") {
           e.preventDefault();
@@ -195,6 +205,7 @@ export function LifeOS() {
       <FocusOverlay />
       <QuickCapture />
       <Controls />
+      <Lab />
       <SparksLayer />
       <Intro />
       <Cursor />

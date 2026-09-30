@@ -242,6 +242,14 @@ export function Chrome() {
             <Glyph name="capture" size={16} /> Capture
           </button>
           <button
+            onClick={() => setUi({ labOpen: !useLife.getState().labOpen })}
+            className="mono pointer-events-auto flex items-center gap-2 text-faint transition-colors hover:text-ink"
+            data-cursor="Lab"
+          >
+            <span className="kbd">T</span>
+            <span className="hidden sm:inline">Lab</span>
+          </button>
+          <button
             onClick={() => setUi({ shortcutsOpen: true })}
             className="mono pointer-events-auto flex items-center gap-2 text-faint transition-colors hover:text-ink"
             data-cursor="Controls"
