@@ -11,6 +11,7 @@ import { scrollState } from "@/lib/pointer";
 import { cloudConfigured } from "@/lib/sync";
 import { useNow } from "@/components/ui/hooks";
 import { usePref, useVisibleSections } from "@/lib/prefs";
+import { Hideable } from "@/components/ui/Hideable";
 import { Glyph } from "@/components/ui/Glyph";
 
 export function cycleMood() {
@@ -52,6 +53,7 @@ export function Chrome() {
   const active = useActiveSection(sections.map((s) => s.id).join(","));
   const showRails = usePref("rails");
   const showLog = usePref("log");
+  const detail = usePref("detail");
   const rail = useRef<HTMLDivElement>(null);
   const readout = useRef<HTMLSpanElement>(null);
 
@@ -80,7 +82,7 @@ export function Chrome() {
 
       {/* top bar */}
       <div className="absolute inset-x-0 top-0 flex items-start justify-between px-[var(--gutter)] pt-6 md:pt-7">
-        <div>
+        <Hideable id="hud.brand">
           <div className="mono flex items-center gap-5">
             <button
               className="pointer-events-auto text-ink"
@@ -90,9 +92,11 @@ export function Chrome() {
             >
               Life<span className="text-accent">/</span>OS
             </button>
-            <span className="hidden text-faint sm:inline">
-              Nº {pad(dayOfYear(now))} — {now.getFullYear()}
-            </span>
+            {detail && (
+              <span className="hidden text-faint sm:inline">
+                Nº {pad(dayOfYear(now))} — {now.getFullYear()}
+              </span>
+            )}
           </div>
           <button
             onClick={cycleMood}
@@ -117,13 +121,16 @@ export function Chrome() {
                 {m.label}
               </motion.span>
             </AnimatePresence>
-            <span className="hidden text-faint sm:inline">{mood.overridden ? "· pinned" : "· auto"}</span>
-            <span className="hidden normal-case tracking-normal text-muted lg:inline" style={{ fontFamily: "var(--font-display)", fontSize: 14, fontStyle: "italic" }}>
-              {m.line}
-            </span>
+            {mood.overridden && <span className="hidden text-faint sm:inline">· pinned</span>}
+            {detail && (
+              <span className="hidden normal-case tracking-normal text-muted lg:inline" style={{ fontFamily: "var(--font-display)", fontSize: 14, fontStyle: "italic" }}>
+                {m.line}
+              </span>
+            )}
           </button>
-        </div>
+        </Hideable>
 
+        <Hideable id="hud.shortcuts">
         <div className="hidden items-center gap-8 md:flex">
           <button
             onClick={() => setUi({ captureOpen: true })}
@@ -132,8 +139,6 @@ export function Chrome() {
           >
             <span className="kbd">K</span>
             <span>Capture</span>
-            <span className="h-px w-12 bg-[var(--line-strong)]" />
-            <span className="hidden normal-case tracking-normal text-faint xl:inline">“remind me to…”</span>
           </button>
           <button
             onClick={() => setUi({ plannerOpen: true })}
@@ -152,8 +157,11 @@ export function Chrome() {
             <span>Monitor</span>
           </button>
         </div>
+        </Hideable>
 
+        <Hideable id="hud.status">
         <div className="mono flex items-center gap-5 text-right">
+          {detail && (
           <span className="hidden items-center gap-2 lg:flex" title={ai?.model ?? "Local interpreter"}>
             <span
               className="inline-block h-1.5 w-1.5"
@@ -161,7 +169,8 @@ export function Chrome() {
             />
             <span className="text-faint">{ai?.online ? "Claude" : "Local AI"}</span>
           </span>
-          {cloudConfigured && (
+          )}
+          {detail && cloudConfigured && (
             <span className="hidden items-center gap-2 lg:flex">
               <span
                 className="inline-block h-1.5 w-1.5"
@@ -175,10 +184,11 @@ export function Chrome() {
           )}
           <span className="text-ink">
             {pad(now.getHours())}:{pad(now.getMinutes())}
-            <span className="text-faint">:{pad(now.getSeconds())}</span>
+            {detail && <span className="text-faint">:{pad(now.getSeconds())}</span>}
           </span>
-          <span className="hidden text-faint sm:inline">{tzAbbr(now)}</span>
+          {detail && <span className="hidden text-faint sm:inline">{tzAbbr(now)}</span>}
         </div>
+        </Hideable>
       </div>
 
       {/* left rail: scroll telemetry */}

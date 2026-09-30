@@ -100,7 +100,7 @@ export function Rituals({ now }: { now: Date }) {
       <div className="mono flex items-center justify-between text-muted">
         <span>Rituals</span>
         <span className="text-faint">
-          <span className="text-ink">{done}</span>/{habits.length} today · last 7 days
+          <span className="text-ink">{done}</span>/{habits.length}
         </span>
       </div>
       {habits.length === 0 ? (

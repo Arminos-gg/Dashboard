@@ -144,6 +144,10 @@ export interface Prefs {
   sectionToday: boolean;
   sectionTelemetry: boolean;
   sectionFocus: boolean;
+  /** extra numbers and labels; off = the minimal default */
+  detail: boolean;
+  /** element ids removed with the click-to-hide layout editor */
+  hidden: string[];
   /** monitor mode */
   monitorDim: 0 | 1 | 2;
   monitorSeconds: boolean;

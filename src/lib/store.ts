@@ -57,6 +57,7 @@ interface Ephemeral {
   labOpen: boolean;
   plannerOpen: boolean;
   monitor: boolean;
+  editLayout: boolean;
   highlightId: string | null;
   briefingBusy: boolean;
   undoStack: Snapshot[];
@@ -98,7 +99,7 @@ interface Actions {
   clearAll: () => void;
   applyRemote: (p: Partial<PersistedLife>) => void;
   setUi: (
-    patch: Partial<Pick<Ephemeral, "captureOpen" | "shortcutsOpen" | "labOpen" | "plannerOpen" | "monitor" | "highlightId" | "syncStatus" | "ai" | "briefingBusy">>,
+    patch: Partial<Pick<Ephemeral, "captureOpen" | "shortcutsOpen" | "labOpen" | "plannerOpen" | "monitor" | "editLayout" | "highlightId" | "syncStatus" | "ai" | "briefingBusy">>,
   ) => void;
 }
 
@@ -118,6 +119,8 @@ export const DEFAULT_PREFS: Prefs = {
   sectionToday: true,
   sectionTelemetry: true,
   sectionFocus: true,
+  detail: false,
+  hidden: [],
   monitorDim: 0,
   monitorSeconds: true,
   monitorWake: false,
@@ -197,6 +200,7 @@ export const useLife = create<LifeStore>()(
         labOpen: false,
         plannerOpen: false,
         monitor: false,
+        editLayout: false,
         highlightId: null,
         briefingBusy: false,
         undoStack: [],

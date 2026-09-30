@@ -9,6 +9,8 @@ import { dateKey, fmtMinutes } from "@/lib/time";
 import { useNow } from "@/components/ui/hooks";
 import { SectionHead } from "@/components/ui/SectionHead";
 import { Glyph } from "@/components/ui/Glyph";
+import { Hideable } from "@/components/ui/Hideable";
+import { usePref } from "@/lib/prefs";
 import type { SoundKey } from "@/lib/types";
 
 export const SOUNDSCAPES: { key: SoundKey; label: string; line: string }[] = [
@@ -35,6 +37,7 @@ export function FocusSection() {
   const sessions = useLife((s) => s.sessions);
   const soundscape = useLife((s) => s.soundscape);
   const setSoundscape = useLife((s) => s.setSoundscape);
+  const detail = usePref("detail");
   const candidates = useMemo(() => rankTasks(tasks, now).slice(0, 5), [tasks, now]);
   const [taskId, setTaskId] = useState<string | undefined>(undefined);
   const [hover, setHover] = useState<number | null>(null);
@@ -58,16 +61,18 @@ export function FocusSection() {
 
   return (
     <section id="focus" className="relative px-frame pb-[22vh] pt-[16vh]">
-      <SectionHead
-        index="04"
-        title="Focus"
-        italic="chamber"
-        meta={`${todays.length} session${todays.length === 1 ? "" : "s"} today · ${fmtMinutes(minutes)} of depth`}
-        echo="Depth"
-      />
+      <Hideable id="focus.head">
+        <SectionHead
+          index="04"
+          title="Focus"
+          italic="chamber"
+          meta={`${todays.length} session${todays.length === 1 ? "" : "s"} today · ${fmtMinutes(minutes)} of depth`}
+          echo="Depth"
+        />
+      </Hideable>
 
       <div className="mt-[9vh] grid gap-16 lg:grid-cols-12">
-        <div className="lg:col-span-7">
+        <Hideable id="focus.durations" className="lg:col-span-7">
           <div className="mono text-muted">Choose a duration</div>
           <div className="mt-4 flex items-end gap-[3vw]" onPointerLeave={() => setHover(null)}>
             {PRESETS.map((p, i) => (
@@ -88,13 +93,15 @@ export function FocusSection() {
               </motion.button>
             ))}
           </div>
-          <p className="mono mt-10 text-faint">
-            Or press <span className="kbd">F</span> anywhere for 25 minutes on your top task.
-          </p>
-        </div>
+          {detail && (
+            <p className="mono mt-10 text-faint">
+              Or press <span className="kbd">F</span> anywhere for 25 minutes on your top task.
+            </p>
+          )}
+        </Hideable>
 
         <div className="space-y-14 lg:col-span-5">
-          <div>
+          <Hideable id="focus.intention">
             <div className="mono text-muted">Intention</div>
             <ul className="mt-4" role="radiogroup" aria-label="Intention">
               {candidates.map((t) => {
@@ -116,12 +123,12 @@ export function FocusSection() {
               })}
               {!candidates.length && <li className="text-faint">No open tasks — pure depth then.</li>}
             </ul>
-          </div>
+          </Hideable>
 
-          <div>
+          <Hideable id="focus.soundscape">
             <div className="mono flex justify-between text-muted">
               <span>Soundscape</span>
-              <span className="text-faint">Synthesised live</span>
+              {detail && <span className="text-faint">Synthesised live</span>}
             </div>
             <div className="mt-4 grid grid-cols-2 border-l border-t border-[var(--line)]">
               {SOUNDSCAPES.map((s) => {
@@ -139,12 +146,12 @@ export function FocusSection() {
                       {preview === s.key && <span className="mono text-accent">live</span>}
                     </span>
                     <span className="display text-[26px] leading-none">{s.label}</span>
-                    <span className="text-[12.5px] text-faint">{s.line}</span>
+                    {detail && <span className="text-[12.5px] text-faint">{s.line}</span>}
                   </button>
                 );
               })}
             </div>
-          </div>
+          </Hideable>
         </div>
       </div>
     </section>

@@ -17,6 +17,7 @@ import { ConfirmButton } from "@/components/ui/ConfirmButton";
 import { clearAllData, resetDemoData } from "@/lib/data-actions";
 import type { Prefs, Weather } from "@/lib/types";
 import { PRESETS, SECTION_PREFS, setPrefs, usePref } from "@/lib/prefs";
+import { elementLabel, showAllElements, showElement, useHidden } from "@/lib/layout";
 
 /** A square on/off switch — a plain labelled checkbox underneath. */
 function Toggle({ label, hint, pref }: { label: string; hint?: string; pref: keyof Prefs }) {
@@ -49,6 +50,28 @@ function Toggle({ label, hint, pref }: { label: string; hint?: string; pref: key
         />
       </span>
     </label>
+  );
+}
+
+function HiddenList() {
+  const hidden = useHidden();
+  if (!hidden.length) return <p className="mt-3 text-[13px] text-faint">Nothing hidden yet.</p>;
+  return (
+    <div className="mt-3">
+      <ul>
+        {hidden.map((id) => (
+          <li key={id} className="flex items-center justify-between gap-3 border-b border-[var(--line)] py-2">
+            <span className="text-[14px] text-muted">{elementLabel(id)}</span>
+            <button onClick={() => showElement(id)} className="mono text-ink transition-colors hover:text-accent">
+              Show
+            </button>
+          </li>
+        ))}
+      </ul>
+      <button onClick={showAllElements} className="mono mt-3 text-faint transition-colors hover:text-ink">
+        Restore all ({hidden.length})
+      </button>
+    </div>
   );
 }
 
@@ -230,6 +253,25 @@ export function Lab() {
                 </span>
                 <span className="kbd">G</span>
               </button>
+            </section>
+
+            <section className="border-t border-[var(--line)] py-5">
+              <div className="mono text-muted">Layout</div>
+              <button
+                onClick={() => setUi({ labOpen: false, editLayout: true })}
+                className="mt-3 flex w-full items-center justify-between gap-4 border border-[var(--line-strong)] px-4 py-3 text-left transition-colors hover:border-[var(--accent)]"
+              >
+                <span>
+                  <span className="block text-[15px] text-ink">Edit layout</span>
+                  <span className="block text-[12px] text-faint">Click any part of the page to hide it</span>
+                </span>
+                <span className="kbd">L</span>
+              </button>
+              <div className="mt-3">
+                <Toggle pref="detail" label="Show extra detail" hint="seconds, coordinates, tags, deltas, hourly weather…" />
+              </div>
+              <div className="mono mt-5 text-faint">Hidden elements</div>
+              <HiddenList />
             </section>
 
             <section className="border-t border-[var(--line)] py-5">

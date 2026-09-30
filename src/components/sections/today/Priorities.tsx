@@ -76,8 +76,7 @@ export function Priorities({ now }: { now: Date }) {
                   />
                 </span>
                 <span className="mono col-start-2 text-faint md:col-start-auto">
-                  {t.dueTime ? `${t.dueTime} · ` : ""}
-                  {t.tags[0] ?? "—"}
+                  {t.dueTime ?? ""}
                 </span>
               </div>
             </motion.li>

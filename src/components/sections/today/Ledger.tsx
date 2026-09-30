@@ -9,6 +9,7 @@ import { audio } from "@/lib/audio";
 import { burst } from "@/lib/sparks";
 import { Glyph } from "@/components/ui/Glyph";
 import type { Task } from "@/lib/types";
+import { usePref } from "@/lib/prefs";
 
 type Filter = "all" | "today" | "upcoming" | "someday" | "done";
 
@@ -23,6 +24,7 @@ function PriorityMarks({ p }: { p: Task["priority"] }) {
 }
 
 function Row({ task, now, draggable }: { task: Task; now: Date; draggable: boolean }) {
+  const detail = usePref("detail");
   const controls = useDragControls();
   const highlight = useLife((s) => s.highlightId === task.id);
   const today = dateKey(now);
@@ -40,7 +42,7 @@ function Row({ task, now, draggable }: { task: Task; now: Date; draggable: boole
 
   const content = (
     <div
-      className="group relative grid grid-cols-[28px_1fr_auto] items-center gap-x-4 gap-y-1 py-4 md:grid-cols-[28px_1fr_140px_150px_28px_24px]"
+      className={`group relative grid grid-cols-[28px_1fr_auto] items-center gap-x-4 gap-y-1 py-4 ${detail ? "md:grid-cols-[28px_1fr_140px_150px_28px_24px]" : "md:grid-cols-[28px_1fr_170px_24px]"}`}
       style={{ opacity: task.done ? 0.42 : 1 }}
     >
       <motion.span
@@ -66,13 +68,15 @@ function Row({ task, now, draggable }: { task: Task; now: Date; draggable: boole
         <div className={`truncate text-[17px] md:text-[19px] ${task.done ? "line-through decoration-[var(--accent)]" : ""}`}>{task.title}</div>
         {task.notes && <div className="truncate text-[13px] text-faint">{task.notes}</div>}
       </div>
-      <span className="mono hidden truncate text-faint md:block">{task.tags.map((t) => `#${t}`).join(" ") || "—"}</span>
+      {detail && <span className="mono hidden truncate text-faint md:block">{task.tags.map((t) => `#${t}`).join(" ") || "—"}</span>}
       <span className={`mono text-right md:text-left ${overdue ? "text-accent" : "text-muted"}`}>
         {task.dueDate ? `${overdue ? "Overdue · " : ""}${relativeDay(task.dueDate, now)}${task.dueTime ? ` · ${task.dueTime}` : ""}` : "Someday"}
       </span>
-      <span className="hidden md:block">
-        <PriorityMarks p={task.priority} />
-      </span>
+      {detail && (
+        <span className="hidden md:block">
+          <PriorityMarks p={task.priority} />
+        </span>
+      )}
       <button
         onClick={() => {
           const s = useLife.getState();
@@ -120,6 +124,7 @@ function Row({ task, now, draggable }: { task: Task; now: Date; draggable: boole
 }
 
 export function Ledger({ now }: { now: Date }) {
+  const detail = usePref("detail");
   const tasks = useLife((s) => s.tasks);
   const reorderOpen = useLife((s) => s.reorderOpen);
   const highlightId = useLife((s) => s.highlightId);
@@ -166,7 +171,7 @@ export function Ledger({ now }: { now: Date }) {
             </button>
           ))}
         </div>
-        <div className="mono hidden text-faint md:block">
+        <div className={`mono hidden text-faint ${detail ? "md:block" : ""}`}>
           {draggable ? "Drag a title to reorder" : "Most recent first"} {suggested && "· "}
           {suggested && (
             <span>

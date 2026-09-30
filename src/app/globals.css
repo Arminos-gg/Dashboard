@@ -264,6 +264,21 @@ html.lenis body {
   }
 }
 
+/* layout editor */
+html[data-edit="on"] [data-hide] {
+  outline: 1px dashed rgb(236 232 225 / 0.22);
+  outline-offset: 6px;
+  pointer-events: auto;
+  cursor: pointer;
+}
+html[data-edit="on"] [data-hide][data-hide-hover] {
+  outline: 1px solid var(--accent);
+  background: color-mix(in oklab, var(--accent) 7%, transparent);
+}
+html[data-edit="on"] [data-hide] * {
+  cursor: pointer !important;
+}
+
 html[data-focus="on"] [data-intro="chrome"] {
   opacity: 0.12;
 }

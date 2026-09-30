@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import { MotionConfig } from "motion/react";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useLife } from "@/lib/store";
 import { startPointer } from "@/lib/pointer";
 import { scrollToId, startSmoothScroll } from "@/lib/scroll";
@@ -28,6 +29,8 @@ import { Controls } from "./overlays/Controls";
 import { Lab } from "./overlays/Lab";
 import { Planner } from "./overlays/Planner";
 import { MonitorView } from "./overlays/MonitorView";
+import { EditLayout } from "./overlays/EditLayout";
+import { Hideable } from "./ui/Hideable";
 import { getPref, SECTION_PREFS, usePref, useVisibleSections } from "@/lib/prefs";
 import { lockScroll } from "@/lib/scroll";
 import type { PersistedLife } from "@/lib/store";
@@ -54,6 +57,7 @@ function SparksLayer() {
 
 function Colophon() {
   return (
+    <Hideable id="footer">
     <footer className="relative px-frame pb-40 pt-[10vh]">
       <div className="h-px w-full bg-[var(--line-strong)]" />
       <p className="display mt-[8vh] max-w-[14ch] text-[clamp(56px,9vw,160px)] leading-[0.9]">
@@ -69,6 +73,7 @@ function Colophon() {
         </button>
       </div>
     </footer>
+    </Hideable>
   );
 }
 
@@ -97,6 +102,16 @@ export function LifeOS() {
     if (monitor) window.scrollTo(0, 0);
     lockScroll(monitor || useLife.getState().focus.active);
   }, [monitor]);
+
+  // layout changed (sections, hidden elements, detail) → scroll-driven reveals must re-measure,
+  // otherwise a header that moved into view never plays its entrance and stays masked
+  const hidden = useLife((s) => (s.prefs?.hidden ?? []).join(","));
+  const detail = usePref("detail");
+  const sectionKey = sections.map((s) => s.id).join(",");
+  useEffect(() => {
+    const id = requestAnimationFrame(() => ScrollTrigger.refresh());
+    return () => cancelAnimationFrame(id);
+  }, [hidden, detail, sectionKey, monitor]);
 
   // the section index on the right reserves space only while it is shown
   useEffect(() => {
@@ -189,6 +204,11 @@ export function LifeOS() {
       }
       if (typing || s.captureOpen || s.shortcutsOpen || s.plannerOpen || mod || e.altKey) return;
 
+      if (e.key.toLowerCase() === "l" && !s.monitor) {
+        s.setUi({ editLayout: !s.editLayout, labOpen: false });
+        return;
+      }
+      if (s.editLayout) return;
       if (e.key.toLowerCase() === "g") {
         s.setUi({ monitor: !s.monitor, labOpen: false });
         return;
@@ -272,6 +292,7 @@ export function LifeOS() {
       <QuickCapture />
       <Controls />
       <Lab />
+      <EditLayout />
       <Planner />
       <SparksLayer />
       <Intro />

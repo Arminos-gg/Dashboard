@@ -20,7 +20,7 @@ function arcPath(r: number, a: number) {
  * Concentric complications: one ring per activity, all on the same angular scale
  * (the largest activity sweeps 270°). Identity is carried by the direct labels.
  */
-export function Allocation({ totals }: { totals: Record<ActivityKey, number> }) {
+export function Allocation({ totals, detail = true }: { totals: Record<ActivityKey, number>; detail?: boolean }) {
   const rows = ACTIVITIES.map((a) => ({ ...a, min: totals[a.key] ?? 0 })).sort((a, b) => b.min - a.min);
   const max = Math.max(1, ...rows.map((r) => r.min));
   const sum = rows.reduce((s, r) => s + r.min, 0);
@@ -98,7 +98,7 @@ export function Allocation({ totals }: { totals: Record<ActivityKey, number> }) 
             <span>{r.label}</span>
             <span>
               <span className="text-ink">{(r.min / 60).toFixed(1)}h</span>
-              <span className="text-faint"> · {sum ? Math.round((r.min / sum) * 100) : 0}%</span>
+              {detail && <span className="text-faint"> · {sum ? Math.round((r.min / sum) * 100) : 0}%</span>}
             </span>
           </li>
         ))}

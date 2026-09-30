@@ -6,6 +6,8 @@ import { useLife } from "@/lib/store";
 import { reverseGeocode, weatherGlyph, weatherLabel } from "@/lib/weather";
 import { hhmm } from "@/lib/time";
 import { Glyph } from "@/components/ui/Glyph";
+import { Hideable } from "@/components/ui/Hideable";
+import { usePref } from "@/lib/prefs";
 
 function SunArc({ now, sunrise, sunset }: { now: Date; sunrise: Date; sunset: Date }) {
   const W = 300;
@@ -89,6 +91,7 @@ function HourStrip({ hourly }: { hourly: { time: string; temp: number; precip: n
 export function WeatherTelemetry({ now }: { now: Date }) {
   const weather = useLife((s) => s.weather);
   const failed = useLife((s) => s.weatherFailed);
+  const detail = usePref("detail");
   const location = useLife((s) => s.location);
   const setLocation = useLife((s) => s.setLocation);
   const pushLog = useLife((s) => s.pushLog);
@@ -147,6 +150,13 @@ export function WeatherTelemetry({ now }: { now: Date }) {
               <div className="display mt-2 text-[24px] italic leading-none">{weatherLabel(weather.code)}</div>
             </div>
           </div>
+          {!detail && (
+            <div className="mono mt-4 text-faint">
+              H <span className="text-ink">{Math.round(weather.hi)}°</span> · L <span className="text-ink">{Math.round(weather.lo)}°</span> · Rain{" "}
+              <span className="text-ink">{weather.precipProb}%</span>
+            </div>
+          )}
+          {detail && (
           <div className="mono mt-4 grid grid-cols-3 gap-2 text-faint">
             <span>
               Feels <span className="text-ink">{Math.round(weather.feels)}°</span>
@@ -164,11 +174,16 @@ export function WeatherTelemetry({ now }: { now: Date }) {
               Hum <span className="text-ink">{Math.round(weather.humidity)}%</span>
             </span>
           </div>
-          <div className="mt-6">{weather.hourly.length > 3 && <HourStrip hourly={weather.hourly} />}</div>
-          {sun && (
-            <div className="mt-4">
+          )}
+          {detail && weather.hourly.length > 3 && (
+            <Hideable id="now.weather.hourly" className="mt-6">
+              <HourStrip hourly={weather.hourly} />
+            </Hideable>
+          )}
+          {detail && sun && (
+            <Hideable id="now.weather.sun" className="mt-4">
               <SunArc now={now} sunrise={sun.rise} sunset={sun.set} />
-            </div>
+            </Hideable>
           )}
         </>
       ) : (

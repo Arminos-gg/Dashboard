@@ -25,6 +25,7 @@ const KEYS: [string[], string][] = [
   [["S"], "Sound effects on / off"],
   [["Z"], "Undo"],
   [["G"], "Monitor mode — for a second screen"],
+  [["L"], "Edit layout — click to hide parts"],
   [["T"], "Lab — display switches & feature tests"],
   [["?"], "This panel"],
 ];

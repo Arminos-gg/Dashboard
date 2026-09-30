@@ -9,6 +9,8 @@ import { buildDays, dayScore, liveDayStat, metricValue, momentumStreak, totalAct
 import { addDays, dateKey } from "@/lib/time";
 import { useNow } from "@/components/ui/hooks";
 import { SectionHead } from "@/components/ui/SectionHead";
+import { Hideable } from "@/components/ui/Hideable";
+import { usePref } from "@/lib/prefs";
 import { MorphChart, type ChartView } from "@/components/charts/MorphChart";
 import { Allocation } from "@/components/charts/Allocation";
 import { Consistency } from "@/components/charts/Consistency";
@@ -102,6 +104,7 @@ export function StatsSection() {
   const [range, setRange] = useState<(typeof RANGES)[number]>(30);
   const [metric, setMetric] = useState<Metric>("completed");
   const [view, setView] = useState<ChartView>("linear");
+  const detail = usePref("detail");
 
   useEffect(() => {
     const flip = () => setView((v) => (v === "linear" ? "radial" : "linear"));
@@ -153,56 +156,66 @@ export function StatsSection() {
 
   return (
     <section id="telemetry" className="relative px-frame py-[16vh]">
-      <SectionHead index="03" title="Telemetry" italic="of the self" meta={`Mean day score ${Math.round(data.score)} · last ${range} days`} echo="Signal" />
+      <Hideable id="telemetry.head">
+        <SectionHead index="03" title="Telemetry" italic="of the self" meta={`Mean day score ${Math.round(data.score)} · last ${range} days`} echo="Signal" />
+      </Hideable>
 
       {/* one filter row scopes every chart below */}
-      <div className="relative z-20 mt-[8vh] md:sticky md:top-16 flex flex-wrap gap-x-10 gap-y-3 border-y border-[var(--line)] bg-[rgb(5_5_6/0.86)] py-4 backdrop-blur-xl">
-        <Seg label="Range" options={RANGES} value={range} onChange={setRange} render={(r) => `${r}D`} />
-        <Seg label="Signal" options={METRICS.map((x) => x.key)} value={metric} onChange={setMetric} render={(k) => METRICS.find((x) => x.key === k)!.label.split(" ")[0]} />
-        <Seg label="Form" options={["linear", "radial", "table"] as const} value={view} onChange={setView} />
-      </div>
+      <Hideable id="telemetry.filters" className="relative z-20 mt-[8vh] md:sticky md:top-[92px]">
+        <div className="flex flex-wrap gap-x-10 gap-y-3 border-y border-[var(--line)] bg-[rgb(5_5_6/0.86)] py-4 backdrop-blur-xl">
+          <Seg label="Range" options={RANGES} value={range} onChange={setRange} render={(r) => `${r}D`} />
+          <Seg label="Signal" options={METRICS.map((x) => x.key)} value={metric} onChange={setMetric} render={(k) => METRICS.find((x) => x.key === k)!.label.split(" ")[0]} />
+          <Seg label="Form" options={["linear", "radial", "table"] as const} value={view} onChange={setView} />
+        </div>
+      </Hideable>
 
-      <div className="mt-12 grid grid-cols-2 gap-y-10 border-b border-[var(--line)] pb-12 lg:grid-cols-4">
-        {figures.map((f, i) => (
-          <div key={f.label} className={`pr-6 ${i > 0 ? "lg:border-l lg:border-[var(--line)] lg:pl-8" : ""}`}>
-            <div className="mono text-muted">{f.label}</div>
-            <div className="figure mt-4 text-[clamp(56px,6.4vw,112px)]">
-              <Count value={f.value} decimals={f.decimals} suffix={f.suffix} />
-            </div>
-            <div className="mono mt-3 flex gap-3 text-faint">
-              <span>{f.note}</span>
-              {f.d != null && (
-                <span className={f.d >= 0 ? "text-accent" : "text-muted"}>
-                  {f.d >= 0 ? "▲" : "▼"} {Math.abs(f.d)}%
-                </span>
+      <Hideable id="telemetry.figures" className="mt-14">
+        <div className="grid grid-cols-2 gap-y-10 lg:grid-cols-4">
+          {figures.map((f, i) => (
+            <div key={f.label} className={`pr-6 ${i > 0 ? "lg:border-l lg:border-[var(--line)] lg:pl-8" : ""}`}>
+              <div className="mono text-muted">{f.label}</div>
+              <div className="figure mt-4 text-[clamp(56px,6.4vw,112px)]">
+                <Count value={f.value} decimals={f.decimals} suffix={f.suffix} />
+              </div>
+              {detail && (
+                <div className="mono mt-3 flex gap-3 text-faint">
+                  <span>{f.note}</span>
+                  {f.d != null && (
+                    <span className={f.d >= 0 ? "text-accent" : "text-muted"}>
+                      {f.d >= 0 ? "▲" : "▼"} {Math.abs(f.d)}%
+                    </span>
+                  )}
+                </div>
               )}
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      </Hideable>
 
-      <div className="mt-16">
-        <MorphChart values={data.values} avg={data.avg} dates={data.dates} view={view} format={m.format} axisFormat={m.axis} label={m.label} />
-        <p className="mono mt-6 text-faint">
-          Form morphs the same series between a timeline and a dial — press <span className="kbd">V</span> to flip.
-        </p>
-      </div>
+      <Hideable id="telemetry.chart" className="mt-[12vh]">
+        <MorphChart values={data.values} avg={detail ? data.avg : null} dates={data.dates} view={view} format={m.format} axisFormat={m.axis} label={m.label} />
+        {detail && (
+          <p className="mono mt-6 text-faint">
+            Form morphs the same series between a timeline and a dial — press <span className="kbd">V</span> to flip.
+          </p>
+        )}
+      </Hideable>
 
       <div className="mt-[14vh] grid gap-20 xl:grid-cols-2">
-        <div>
+        <Hideable id="telemetry.allocation">
           <div className="mono mb-10 flex justify-between text-muted">
             <span>Allocation</span>
-            <span className="text-faint">Where the hours went · {range}d</span>
+            {detail && <span className="text-faint">Where the hours went · {range}d</span>}
           </div>
-          <Allocation totals={totals} />
-        </div>
-        <div>
+          <Allocation totals={totals} detail={detail} />
+        </Hideable>
+        <Hideable id="telemetry.consistency">
           <div className="mono mb-10 flex justify-between text-muted">
             <span>Consistency</span>
-            <span className="text-faint">26 weeks · {addDays(now, -181).getFullYear() !== now.getFullYear() ? "rolling" : now.getFullYear()}</span>
+            {detail && <span className="text-faint">26 weeks · {addDays(now, -181).getFullYear() !== now.getFullYear() ? "rolling" : now.getFullYear()}</span>}
           </div>
           <Consistency history={history} todayStat={todayStat} habits={habits} now={now} />
-        </div>
+        </Hideable>
       </div>
     </section>
   );

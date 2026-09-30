@@ -42,7 +42,7 @@ information laid out spatially — a time ribbon, a dial, an orbit — instead o
 | `1`–`4` | Jump to section | `S` | Sound effects on/off |
 | `Z` / `⌘Z` | Undo | `?` | Controls & settings |
 | `T` | **Lab** — display switches & feature tests | `E` | **Planner** — plain add/edit view |
-| `G` | **Monitor mode** (second screen) | | |
+| `G` | **Monitor mode** (second screen) | `L` | **Edit layout** — click to hide parts |
 
 ### Planner (`E`)
 
@@ -58,6 +58,12 @@ takes over the right column. A toolbar (fades when the mouse rests) offers Brigh
 background effects on/off, **Keep awake** (Screen Wake Lock), fullscreen, capture and the planner. The layout drifts a
 few pixels each minute to spare OLED panels. Open **`/?monitor`** to land in it directly — bookmark that on the second
 screen. Tabs stay in sync, so anything you change on your main screen appears on the monitor within a moment.
+
+### Edit layout (`L`)
+
+Every part of the page is outlined; click one to remove it (the rest of the page reflows). Hidden parts are listed in
+**Lab → Layout → Hidden elements**, each with *Show*, plus *Restore all*. The page is minimal by default; turn on
+**Show extra detail** there for seconds, coordinates, tags, priority marks, deltas, hourly weather and the sun arc.
 
 ### Display switches (Lab → Display & features)
 

@@ -323,19 +323,22 @@ export function MorphChart({
           <div className="figure mt-1 text-[clamp(40px,4.2vw,64px)]">{format(values[h] ?? 0)}</div>
           <div className="mono mt-1 text-muted">{label}</div>
         </div>
-        <div className="mono flex items-center gap-5 text-faint">
-          <span className="flex items-center gap-2">
-            <span className="inline-block h-[1.5px] w-5 bg-[var(--accent)]" /> Daily
-          </span>
-          {avg && (
+        {/* a single series needs no legend; show it only when the mean line is drawn */}
+        {avg && (
+          <div className="mono flex items-center gap-5 text-faint">
             <span className="flex items-center gap-2">
-              <svg width="20" height="2" aria-hidden>
-                <line x1="0" x2="20" y1="1" y2="1" stroke="var(--ink)" strokeOpacity="0.6" strokeDasharray="3 3" />
-              </svg>
-              7-day mean
+              <span className="inline-block h-[1.5px] w-5 bg-[var(--accent)]" /> Daily
             </span>
-          )}
-        </div>
+            {avg && (
+              <span className="flex items-center gap-2">
+                <svg width="20" height="2" aria-hidden>
+                  <line x1="0" x2="20" y1="1" y2="1" stroke="var(--ink)" strokeOpacity="0.6" strokeDasharray="3 3" />
+                </svg>
+                7-day mean
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="relative">

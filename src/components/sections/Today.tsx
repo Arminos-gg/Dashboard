@@ -6,6 +6,7 @@ import { eventsOn, freeWindows } from "@/lib/agenda";
 import { dateKey } from "@/lib/time";
 import { useNow } from "@/components/ui/hooks";
 import { SectionHead } from "@/components/ui/SectionHead";
+import { Hideable } from "@/components/ui/Hideable";
 import { DayRibbon } from "./today/DayRibbon";
 import { Priorities } from "./today/Priorities";
 import { Rituals } from "./today/Rituals";
@@ -25,22 +26,24 @@ export function TodaySection() {
 
   return (
     <section id="today" className="relative px-frame py-[16vh]">
-      <SectionHead index="02" title="Agenda" italic="of the day" meta={meta} echo="Today" />
-      <div className="mt-[9vh]">
+      <Hideable id="today.head">
+        <SectionHead index="02" title="Agenda" italic="of the day" meta={meta} echo="Today" />
+      </Hideable>
+      <Hideable id="today.ribbon" className="mt-[9vh]">
         <DayRibbon now={now} />
-      </div>
+      </Hideable>
       <div className="mt-[12vh] grid gap-16 lg:grid-cols-12 lg:gap-20">
-        <div className="lg:col-span-7">
+        <Hideable id="today.three" className="lg:col-span-7">
           <Priorities now={now} />
-        </div>
-        <div className="lg:col-span-5">
+        </Hideable>
+        <Hideable id="today.rituals" className="lg:col-span-5">
           <Rituals now={now} />
-        </div>
+        </Hideable>
       </div>
-      <div className="mt-[12vh]">
+      <Hideable id="today.ledger" className="mt-[12vh]">
         <div className="mono mb-6 text-muted">Manifest</div>
         <Ledger now={now} />
-      </div>
+      </Hideable>
     </section>
   );
 }

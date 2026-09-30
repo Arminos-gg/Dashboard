@@ -11,6 +11,7 @@ import { dateKey, greeting, monthName, pad, weekday } from "@/lib/time";
 import { formatCoords } from "@/lib/weather";
 import { introDelay } from "@/lib/intro";
 import { calmMotion, usePref } from "@/lib/prefs";
+import { Hideable } from "@/components/ui/Hideable";
 import { audio } from "@/lib/audio";
 import { burst } from "@/lib/sparks";
 import { useNow } from "@/components/ui/hooks";
@@ -39,6 +40,7 @@ function Digit({ value }: { value: string }) {
 }
 
 function BigTime({ now }: { now: Date }) {
+  const detail = usePref("detail");
   const hh = pad(now.getHours());
   const mm = pad(now.getMinutes());
   const dayPct = ((now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()) / 86400) * 100;
@@ -52,16 +54,18 @@ function BigTime({ now }: { now: Date }) {
         </span>
         <Digit value={mm[0]} />
         <Digit value={mm[1]} />
-        <span className="mono ml-3 mt-[0.9em] text-[11px] text-muted md:ml-5" style={{ fontSize: "clamp(10px,0.9vw,13px)" }}>
-          {pad(now.getSeconds())}
-        </span>
+        {detail && (
+          <span className="mono ml-3 mt-[0.9em] text-[11px] text-muted md:ml-5" style={{ fontSize: "clamp(10px,0.9vw,13px)" }}>
+            {pad(now.getSeconds())}
+          </span>
+        )}
       </h1>
       <div className="mt-4 flex items-center gap-4">
         <div className="relative h-px w-[min(56vw,640px)] bg-[var(--line)]">
           <div className="absolute inset-y-0 left-0 bg-[var(--accent)]" style={{ width: `${dayPct}%` }} />
           <div className="absolute -top-1 h-[9px] w-px bg-[var(--accent)]" style={{ left: `${dayPct}%` }} />
         </div>
-        <span className="mono text-faint">Day {dayPct.toFixed(1)}% elapsed</span>
+        {detail && <span className="mono text-faint">Day {dayPct.toFixed(1)}% elapsed</span>}
       </div>
     </div>
   );
@@ -164,6 +168,7 @@ export function NowSection() {
   const root = useRef<HTMLElement>(null);
   const echo = useRef<HTMLDivElement>(null);
   const showEcho = usePref("echo");
+  const detail = usePref("detail");
 
   const minuteKey = Math.floor(now.getTime() / 60_000);
   const subline = useMemo(() => {
@@ -228,36 +233,48 @@ export function NowSection() {
         </AnimatePresence>
       </div>
 
-      <div data-now-in className="mono relative flex flex-wrap items-center gap-x-6 gap-y-1 text-muted">
-        <span className="text-accent">01</span>
-        <span>
-          {weekday(now)}, {now.getDate()} {monthName(now)}
-        </span>
-        {location && <span className="hidden text-faint md:inline">{formatCoords(location.lat, location.lon)}</span>}
-      </div>
+      <Hideable id="now.date" className="relative w-fit">
+        <div data-now-in className="mono flex flex-wrap items-center gap-x-6 gap-y-1 text-muted">
+          <span className="text-accent">01</span>
+          <span>
+            {weekday(now)}, {now.getDate()} {monthName(now)}
+          </span>
+          {detail && location && <span className="hidden text-faint md:inline">{formatCoords(location.lat, location.lon)}</span>}
+        </div>
+      </Hideable>
 
       <div className="relative mt-[3vh] grid gap-12 lg:grid-cols-12">
-        <div className="lg:col-span-8">
+        <div className="space-y-8 lg:col-span-8">
+          <Hideable id="now.clock" className="w-fit">
+            <div data-now-in>
+              <BigTime now={now} />
+            </div>
+          </Hideable>
+          <Hideable id="now.greeting" className="w-fit">
+            <p data-now-in className="display max-w-[16ch] text-[clamp(32px,4.2vw,68px)] leading-[0.98]">
+              {greeting(now)}
+              {name ? `, ${name}` : ""}. <em className="text-accent">{subline}</em>
+            </p>
+          </Hideable>
+        </div>
+        <Hideable id="now.weather" className="lg:col-span-4 lg:pt-[2vh]">
           <div data-now-in>
-            <BigTime now={now} />
+            <WeatherTelemetry now={now} />
           </div>
-          <p data-now-in className="display mt-8 max-w-[16ch] text-[clamp(32px,4.2vw,68px)] leading-[0.98]">
-            {greeting(now)}
-            {name ? `, ${name}` : ""}. <em className="text-accent">{subline}</em>
-          </p>
-        </div>
-        <div data-now-in className="lg:col-span-4 lg:pt-[2vh]">
-          <WeatherTelemetry now={now} />
-        </div>
+        </Hideable>
       </div>
 
-      <div className="relative mt-[8vh] grid gap-12 lg:grid-cols-12 lg:gap-16">
-        <div data-now-in className="lg:col-span-7">
-          <Directive />
-        </div>
-        <div data-now-in className="lg:col-span-5">
-          <BriefingSheet moodKey={moodKey} />
-        </div>
+      <div className="relative mt-[10vh] grid gap-12 lg:grid-cols-12 lg:gap-16">
+        <Hideable id="now.directive" className="lg:col-span-7">
+          <div data-now-in>
+            <Directive />
+          </div>
+        </Hideable>
+        <Hideable id="now.briefing" className="lg:col-span-5">
+          <div data-now-in>
+            <BriefingSheet moodKey={moodKey} />
+          </div>
+        </Hideable>
       </div>
     </section>
   );

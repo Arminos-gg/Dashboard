@@ -7,19 +7,18 @@ import { usePref } from "@/lib/prefs";
 
 /**
  * A reticle that trails the pointer with inertia and stretches along its velocity
- * vector. Interactive elements expand it; [data-cursor] elements give it a label.
+ * vector. Over anything clickable it opens up slightly — no labels, nothing in the way.
  */
 export function Cursor() {
   const ring = useRef<HTMLDivElement>(null);
   const dot = useRef<HTMLDivElement>(null);
-  const [label, setLabel] = useState<string | null>(null);
   const [enabled] = useState(
     () => typeof window !== "undefined" && window.matchMedia("(pointer: fine)").matches,
   );
   const hover = useRef(false);
   // the planner is a working surface: give it the ordinary system cursor
   const cursorPref = usePref("cursor");
-  const busy = useLife((s) => s.plannerOpen || s.monitor);
+  const busy = useLife((s) => s.plannerOpen || s.monitor || s.editLayout);
   const plain = busy || !cursorPref;
 
   useEffect(() => {
@@ -37,8 +36,6 @@ export function Cursor() {
 
     const over = (e: PointerEvent) => {
       const t = e.target as Element | null;
-      const labelled = t?.closest?.("[data-cursor]");
-      setLabel(labelled?.getAttribute("data-cursor") ?? null);
       hover.current = !!t?.closest?.("a,button,[role=button],input,textarea,select,[data-hover],label");
     };
     window.addEventListener("pointerover", over, { passive: true });
@@ -46,10 +43,9 @@ export function Cursor() {
     const loop = () => {
       rx += (pointer.x - rx) * 0.2;
       ry += (pointer.y - ry) * 0.2;
-      const labelled = !!ring.current?.dataset.label;
-      const target = labelled ? 86 : hover.current ? 46 : 30;
+      const target = hover.current ? 40 : 28;
       size += (target - size) * 0.18;
-      const stretch = labelled ? 0 : Math.min(pointer.speed, 1);
+      const stretch = Math.min(pointer.speed, 1);
       const angle = stretch > 0.02 ? Math.atan2(pointer.vy, pointer.vx) : 0;
       if (ring.current) {
         ring.current.style.transform =
@@ -59,7 +55,7 @@ export function Cursor() {
       }
       if (dot.current) {
         dot.current.style.transform = `translate3d(${pointer.x - 2}px, ${pointer.y - 2}px, 0)`;
-        dot.current.style.opacity = pointer.active && !labelled ? "1" : "0";
+        dot.current.style.opacity = pointer.active ? "1" : "0";
       }
       raf = requestAnimationFrame(loop);
     };
@@ -77,21 +73,8 @@ export function Cursor() {
     <>
       <div
         ref={ring}
-        data-label={label ?? ""}
-        className="pointer-events-none fixed left-0 top-0 z-[90] grid place-items-center rounded-full border mix-blend-difference transition-[background-color,border-color] duration-300"
-        style={{
-          borderColor: label ? "transparent" : "rgb(236 232 225 / 0.55)",
-          backgroundColor: label ? "var(--accent)" : "transparent",
-          mixBlendMode: label ? "normal" : "difference",
-        }}
-      >
-        <span
-          className="mono whitespace-nowrap text-[9px] text-black transition-opacity duration-200"
-          style={{ opacity: label ? 1 : 0, letterSpacing: "0.16em" }}
-        >
-          {label}
-        </span>
-      </div>
+        className="pointer-events-none fixed left-0 top-0 z-[90] rounded-full border border-[rgb(236_232_225/0.55)] mix-blend-difference"
+      />
       <div ref={dot} className="pointer-events-none fixed left-0 top-0 z-[91] h-1 w-1 bg-[var(--ink)] mix-blend-difference" />
     </>
   );

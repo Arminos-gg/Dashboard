@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "motion/react";
+import { usePref } from "@/lib/prefs";
 import { useLife } from "@/lib/store";
 import { hhmm } from "@/lib/time";
 import { requestBriefing } from "@/lib/briefing-runner";
@@ -30,14 +32,17 @@ export function BriefingSheet({ moodKey }: { moodKey: string }) {
   const b = useLife((s) => s.briefing);
   const busy = useLife((s) => s.briefingBusy);
   const ai = useLife((s) => s.ai);
+  const detail = usePref("detail");
+  const [more, setMore] = useState(false);
+  const paragraphs = b ? (detail || more ? b.paragraphs : b.paragraphs.slice(0, 1)) : [];
 
   return (
     <aside className="glass p-6 md:p-8" aria-busy={busy}>
       <div className="mono flex items-center justify-between gap-4 text-muted">
         <span>
-          Briefing <span className="text-faint">·</span>{" "}
-          <span className="text-ink">{b?.source === "claude" ? "Claude" : "Local synthesis"}</span>
-          {b && <span className="text-faint"> · {hhmm(new Date(b.generatedAt))}</span>}
+          Briefing {detail && <span className="text-faint">·</span>}{" "}
+          {detail && <span className="text-ink">{b?.source === "claude" ? "Claude" : "Local synthesis"}</span>}
+          {detail && b && <span className="text-faint"> · {hhmm(new Date(b.generatedAt))}</span>}
         </span>
         <button
           onClick={() => requestBriefing(moodKey, true)}
@@ -56,11 +61,16 @@ export function BriefingSheet({ moodKey }: { moodKey: string }) {
           <h3 className="display mt-6 text-[clamp(28px,2.6vw,40px)] leading-[1.02]">
             <Typed text={b.headline} />
           </h3>
-          {b.paragraphs.map((p, i) => (
+          {paragraphs.map((p, i) => (
             <p key={i} className="mt-4 text-[15px] leading-[1.6] text-[rgb(236_232_225/0.78)]">
               <Typed text={p} delay={0.25 + i * 0.35} />
             </p>
           ))}
+          {!detail && b.paragraphs.length > 1 && (
+            <button onClick={() => setMore((v) => !v)} className="mono mt-3 text-faint transition-colors hover:text-ink">
+              {more ? "Less" : "More"}
+            </button>
+          )}
           <div className="mono mt-7 grid gap-3 border-t border-[var(--line)] pt-5">
             {b.focusWindow && (
               <div className="flex items-baseline justify-between gap-4">
@@ -70,18 +80,20 @@ export function BriefingSheet({ moodKey }: { moodKey: string }) {
                 </span>
               </div>
             )}
+            {detail && (
             <div className="flex items-baseline justify-between gap-4">
               <span className="shrink-0 text-faint">Next move</span>
               <span className="text-right normal-case tracking-normal text-ink" style={{ fontFamily: "var(--font-sans)", fontSize: 13 }}>
                 {b.nextMove}
               </span>
             </div>
+            )}
           </div>
         </div>
       ) : (
         <p className="display mt-6 text-[28px] text-faint">Composing today’s briefing…</p>
       )}
-      {!ai?.online && (
+      {detail && !ai?.online && (
         <p className="mono mt-6 text-faint">Set ANTHROPIC_API_KEY to let Claude write this.</p>
       )}
     </aside>

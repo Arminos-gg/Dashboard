@@ -7,6 +7,7 @@ import { eventsOn, freeWindows } from "@/lib/agenda";
 import { dateKey, fmtMinutes, hhmm, minutesOfDay, pad } from "@/lib/time";
 import { ACTIVITIES } from "@/lib/seed";
 import type { CalEvent } from "@/lib/types";
+import { usePref } from "@/lib/prefs";
 
 interface Placed {
   e: CalEvent;
@@ -39,6 +40,7 @@ function place(events: CalEvent[]): Placed[] {
 
 /** The day as a horizontal instrument: hours as ticks, commitments as translucent bands, a live needle for now. */
 export function DayRibbon({ now }: { now: Date }) {
+  const detail = usePref("detail");
   const events = useLife((s) => s.events);
   const removeEvent = useLife((s) => s.removeEvent);
   const pushLog = useLife((s) => s.pushLog);
@@ -130,10 +132,13 @@ export function DayRibbon({ now }: { now: Date }) {
           {windows.map((w) => {
             const a = x(minutesOfDay(w.start));
             const b = x(minutesOfDay(w.end) || 24 * 60);
+            const big = b - a > 90;
+            // minimal view: only the open stretches worth planning around
+            if (!big && !detail) return null;
             return (
               <g key={w.start.toISOString()}>
                 <path d={`M${a + 2} ${axisY + 36} V${axisY + 40} H${b - 2} V${axisY + 36}`} fill="none" stroke="var(--accent)" strokeOpacity={0.55} />
-                {b - a > 90 ? (
+                {big ? (
                   <text x={(a + b) / 2} y={axisY + 58} textAnchor="middle" fontSize={14} fill="var(--accent)" style={{ fontFamily: "var(--font-display)", fontStyle: "italic" }}>
                     open · {fmtMinutes(w.minutes)}
                   </text>
