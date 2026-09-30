@@ -66,6 +66,8 @@ cp .env.example .env.local   # optional — everything works without keys
 npm run dev                  # http://localhost:3000
 ```
 
+Deploying: import the repo on Vercel — it is detected as Next.js and needs no build settings.
+
 The first run seeds a realistic demo universe (six months of history, today's calendar, habits and tasks).
 Reset it or start empty from the controls panel (`?`).
 
