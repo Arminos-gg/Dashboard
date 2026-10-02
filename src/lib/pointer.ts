@@ -55,8 +55,17 @@ export function startPointer() {
   );
   document.addEventListener("pointerleave", () => (pointer.active = false));
 
-  const root = document.documentElement;
-  const loop = () => {
+  // The spotlight (.glass) and the velocity skew read these as CSS variables. They are
+  // written onto just those elements, never :root — a variable changed on :root makes
+  // the browser recompute the style of every element on the page, every frame.
+  let spot: HTMLElement[] = [];
+  let skew: HTMLElement[] = [];
+  let scanned = -Infinity;
+  let lastMx = "";
+  let lastMy = "";
+  let lastVx = "";
+  let skewEase = 0;
+  const loop = (now: number) => {
     rawVx = pointer.x - lastX;
     rawVy = pointer.y - lastY;
     lastX = pointer.x;
@@ -68,12 +77,28 @@ export function startPointer() {
     pointer.u = pointer.x / window.innerWidth;
     pointer.v = pointer.y / window.innerHeight;
 
-    root.style.setProperty("--mx", `${pointer.x.toFixed(1)}px`);
-    root.style.setProperty("--my", `${pointer.y.toFixed(1)}px`);
-    root.style.setProperty("--pu", (pointer.u * 2 - 1).toFixed(4));
-    root.style.setProperty("--pv", (pointer.v * 2 - 1).toFixed(4));
-    root.style.setProperty("--vel", pointer.speed.toFixed(4));
-    root.style.setProperty("--vx", Math.max(-1, Math.min(1, pointer.vx / 40)).toFixed(4));
+    if (now - scanned > 750) {
+      scanned = now;
+      spot = Array.from(document.querySelectorAll<HTMLElement>(".glass"));
+      skew = Array.from(document.querySelectorAll<HTMLElement>(".velocity-skew"));
+      lastMx = lastMy = lastVx = ""; // newly mounted elements need a first write
+    }
+    const mx = `${Math.round(pointer.x)}px`;
+    const my = `${Math.round(pointer.y)}px`;
+    skewEase += (Math.max(-1, Math.min(1, pointer.vx / 40)) - skewEase) * 0.08;
+    const vx = Math.abs(skewEase) < 0.001 ? "0" : skewEase.toFixed(3);
+    if (mx !== lastMx || my !== lastMy) {
+      lastMx = mx;
+      lastMy = my;
+      for (const el of spot) {
+        el.style.setProperty("--mx", mx);
+        el.style.setProperty("--my", my);
+      }
+    }
+    if (vx !== lastVx) {
+      lastVx = vx;
+      for (const el of skew) el.style.setProperty("--vx", vx);
+    }
     requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);

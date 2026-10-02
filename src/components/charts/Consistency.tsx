@@ -87,6 +87,14 @@ export function Consistency({
               {d}
             </text>
           ))}
+          {/* one blurred group for every strong day — a single filter pass, not one per dot */}
+          <g filter="url(#cs-glow)" pointerEvents="none">
+            {cells.map((c) =>
+              c.score != null && c.score > 0.7 ? (
+                <circle key={c.key} cx={28 + c.col * CELL + CELL / 2} cy={20 + c.row * CELL + CELL / 2} r={4 + c.score * 4} fill="var(--accent)" fillOpacity={0.35 * c.score} />
+              ) : null,
+            )}
+          </g>
           {cells.map((c) => {
             const cx = 28 + c.col * CELL + CELL / 2;
             const cy = 20 + c.row * CELL + CELL / 2;
@@ -97,10 +105,7 @@ export function Consistency({
                 {c.score == null ? (
                   <circle cx={cx} cy={cy} r={1} fill="var(--line-strong)" />
                 ) : (
-                  <>
-                    {s > 0.7 && <circle cx={cx} cy={cy} r={4 + s * 4} fill="var(--accent)" opacity={0.35 * s} filter="url(#cs-glow)" />}
-                    <circle cx={cx} cy={cy} r={1.4 + s * 4.6} fill="var(--accent)" opacity={0.18 + s * 0.82} />
-                  </>
+                  <circle cx={cx} cy={cy} r={1.4 + s * 4.6} fill="var(--accent)" fillOpacity={0.18 + s * 0.82} />
                 )}
                 {(c.key === today || c.key === hover) && <circle cx={cx} cy={cy} r={7.5} fill="none" stroke="var(--ink)" strokeOpacity={0.6} />}
               </g>
@@ -124,7 +129,7 @@ export function Consistency({
                   height={bh}
                   rx={1.5}
                   fill="var(--accent)"
-                  opacity={hoverWeek === i ? 1 : 0.25 + (w ?? 0) * 0.6}
+                  fillOpacity={hoverWeek === i ? 1 : 0.25 + (w ?? 0) * 0.6}
                 />
               </g>
             );
@@ -136,7 +141,7 @@ export function Consistency({
           Less
           {[0.1, 0.35, 0.6, 0.85, 1].map((s) => (
             <svg key={s} width={12} height={12} aria-hidden>
-              <circle cx={6} cy={6} r={1.4 + s * 4.6} fill="var(--accent)" opacity={0.18 + s * 0.82} />
+              <circle cx={6} cy={6} r={1.4 + s * 4.6} fill="var(--accent)" fillOpacity={0.18 + s * 0.82} />
             </svg>
           ))}
           More

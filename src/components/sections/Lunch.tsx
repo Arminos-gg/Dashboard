@@ -44,8 +44,8 @@ function Gauge({ st }: { st: LunchState }) {
             key={i}
             className="h-[10px] flex-1 transition-colors duration-700"
             style={{
-              background: on ? "var(--accent)" : "var(--line)",
-              opacity: on ? (hot ? 1 : 0.35 + (i / cells) * 0.55) : 1,
+              // alpha in the colour, not `opacity`: opacity makes every cell its own compositing effect
+              background: on ? `color-mix(in oklab, var(--accent) ${Math.round((hot ? 1 : 0.35 + (i / cells) * 0.55) * 100)}%, transparent)` : "var(--line)",
               boxShadow: hot && st.phase !== "waiting" ? "0 0 8px var(--accent)" : undefined,
               animation: hot && st.phase === "final" ? "pulse-colon 0.8s ease-in-out infinite" : undefined,
             }}
@@ -159,7 +159,7 @@ export function LunchCard() {
   const live = st.phase !== "off";
 
   return (
-    <div className="border border-[var(--line)] p-5 backdrop-blur-sm" style={{ background: "rgb(8 8 10 / 0.35)" }}>
+    <div className="border border-[var(--line)] p-5" style={{ background: "rgb(8 8 10 / 0.55)" }}>
       <div className="mono flex items-center justify-between gap-4 text-muted">
         <span className={st.phase === "approach" || st.phase === "final" || st.phase === "eating" ? "text-accent" : ""}>{kicker(st, name)}</span>
         <button

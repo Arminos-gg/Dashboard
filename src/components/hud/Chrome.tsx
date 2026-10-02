@@ -60,9 +60,16 @@ export function Chrome() {
 
   useEffect(() => {
     let raf = 0;
+    let lastP = -1;
     const loop = () => {
-      if (rail.current) rail.current.style.transform = `scaleY(${Math.max(0.002, scrollState.progress)})`;
-      if (readout.current) readout.current.textContent = String(Math.round(scrollState.progress * 100)).padStart(3, "0");
+      // only touch the DOM when the value moved — rewriting text forces layout every frame
+      const p = Math.round(scrollState.progress * 1000);
+      if (p !== lastP) {
+        lastP = p;
+        if (rail.current) rail.current.style.transform = `scaleY(${Math.max(0.002, p / 1000)})`;
+        const text = String(Math.round(p / 10)).padStart(3, "0");
+        if (readout.current && readout.current.textContent !== text) readout.current.textContent = text;
+      }
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);

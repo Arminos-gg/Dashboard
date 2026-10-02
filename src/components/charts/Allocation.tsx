@@ -82,6 +82,20 @@ export function Allocation({ totals, detail = true }: { totals: Record<ActivityK
             />
           );
         })}
+        {/* all ring glows share one filter pass */}
+        <g filter="url(#al-glow)" pointerEvents="none">
+          {rows.map((r, i) => (
+            <path
+              key={r.key}
+              d={arcPath(OUTER - i * STEP, angles[r.key])}
+              fill="none"
+              stroke="var(--accent)"
+              strokeWidth={6}
+              strokeLinecap="round"
+              strokeOpacity={hover === r.key ? 0.7 : hover ? 0.08 : 0.35}
+            />
+          ))}
+        </g>
         {rows.map((r, i) => {
           const rad = OUTER - i * STEP;
           const a = angles[r.key];
@@ -95,7 +109,6 @@ export function Allocation({ totals, detail = true }: { totals: Record<ActivityK
               data-cursor={r.label}
             >
               <circle r={rad} fill="none" stroke="var(--line)" />
-              <path d={arcPath(rad, a)} fill="none" stroke="var(--accent)" strokeWidth={6} strokeOpacity={hover === r.key ? 0.7 : 0.35} filter="url(#al-glow)" strokeLinecap="round" />
               <path
                 d={arcPath(rad, a)}
                 fill="none"

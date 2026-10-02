@@ -146,6 +146,41 @@ export function MorphChart({
     endText?: SVGTextElement | null;
   }>({ grid: [], vlabels: [], dlabels: [], dticks: [] });
 
+  /** Only the hover layer — kept apart from draw() so hovering never re-renders the chart and its glow. */
+  const drawMarker = useCallback(() => {
+    const r = refs.current;
+    const g = geom;
+    const t = Math.max(0, Math.min(1, T.current));
+    const hi = hover.current;
+    if (r.peak) {
+      const n = values.length;
+      let peakI = 0;
+      for (let i = 1; i < n; i++) if (values[i] > values[peakI]) peakI = i;
+      const op = values[peakI] > 0 && peakI !== n - 1 && hi == null ? "1" : "0";
+      if (r.peak.style.opacity !== op) r.peak.style.opacity = op;
+    }
+    if (hi != null && r.marker) {
+      const n = values.length;
+      const u = n > 1 ? hi / (n - 1) : 1;
+      const j = Math.round(u * (M - 1));
+      const [px, py] = project(u, cur.current[j], t, g);
+      const [qx, qy] = project(u, 0, t, g);
+      const [tx, ty] = project(u, 1.02, t, g);
+      r.marker.style.opacity = "1";
+      r.mline?.setAttribute("d", `M${qx.toFixed(1)} ${qy.toFixed(1)}L${tx.toFixed(1)} ${ty.toFixed(1)}`);
+      r.mdot?.setAttribute("cx", px.toFixed(1));
+      r.mdot?.setAttribute("cy", py.toFixed(1));
+      if (r.tip) {
+        const flip = px > g.w - 170;
+        r.tip.style.opacity = "1";
+        r.tip.style.transform = `translate(${(flip ? px - 16 : px + 16).toFixed(1)}px, ${(py - 24).toFixed(1)}px) translateX(${flip ? "-100%" : "0"})`;
+      }
+    } else {
+      if (r.marker) r.marker.style.opacity = "0";
+      if (r.tip) r.tip.style.opacity = "0";
+    }
+  }, [geom, values]);
+
   const draw = useCallback(() => {
     const g = geom;
     const t = Math.max(0, Math.min(1, T.current));
@@ -179,7 +214,6 @@ export function MorphChart({
       const u = n > 1 ? peakI / (n - 1) : 1;
       const [px, py] = project(u, cur.current[Math.round(u * (M - 1))], t, g);
       r.peak.setAttribute("transform", `translate(${px.toFixed(1)} ${py.toFixed(1)})`);
-      r.peak.style.opacity = values[peakI] > 0 && peakI !== n - 1 && hover.current == null ? "1" : "0";
     }
     r.base?.setAttribute("d", polyline(base));
     r.area?.setAttribute("d", polyline([...line, ...base.slice().reverse()]) + "Z");
@@ -210,29 +244,8 @@ export function MorphChart({
     r.endHalo?.setAttribute("cx", ex.toFixed(1));
     r.endHalo?.setAttribute("cy", ey.toFixed(1));
     r.endText?.setAttribute("transform", `translate(${(ex + 10).toFixed(1)} ${(ey - 10).toFixed(1)})`);
-    // hover marker
-    const hi = hover.current;
-    if (hi != null && r.marker) {
-      const n = values.length;
-      const u = n > 1 ? hi / (n - 1) : 1;
-      const j = Math.round(u * (M - 1));
-      const [px, py] = project(u, cur.current[j], t, g);
-      const [qx, qy] = project(u, 0, t, g);
-      const [tx, ty] = project(u, 1.02, t, g);
-      r.marker.style.opacity = "1";
-      r.mline?.setAttribute("d", `M${qx.toFixed(1)} ${qy.toFixed(1)}L${tx.toFixed(1)} ${ty.toFixed(1)}`);
-      r.mdot?.setAttribute("cx", px.toFixed(1));
-      r.mdot?.setAttribute("cy", py.toFixed(1));
-      if (r.tip) {
-        const flip = px > g.w - 170;
-        r.tip.style.opacity = "1";
-        r.tip.style.transform = `translate(${(flip ? px - 16 : px + 16).toFixed(1)}px, ${(py - 24).toFixed(1)}px) translateX(${flip ? "-100%" : "0"})`;
-      }
-    } else {
-      if (r.marker) r.marker.style.opacity = "0";
-      if (r.tip) r.tip.style.opacity = "0";
-    }
-  }, [geom, avg, values]);
+    drawMarker();
+  }, [geom, avg, values, drawMarker]);
 
   const kick = useCallback(() => {
     cancelAnimationFrame(raf.current);
@@ -317,9 +330,10 @@ export function MorphChart({
   useEffect(() => () => cancelAnimationFrame(raf.current), []);
 
   const setHover = (i: number | null) => {
+    if (hover.current === i) return;
     hover.current = i;
     setHovered(i);
-    draw();
+    drawMarker();
   };
 
   const onMove = (e: React.PointerEvent) => {
@@ -375,7 +389,7 @@ export function MorphChart({
       </div>
 
       <div className="relative">
-      <motion.div className="relative" animate={{ opacity: view === "table" ? 0.06 : 1, filter: view === "table" ? "blur(6px)" : "blur(0px)" }} transition={{ duration: 0.6 }}>
+      <motion.div className="relative" animate={{ opacity: view === "table" ? 0.06 : 1 }} transition={{ duration: 0.6 }}>
         <svg
           ref={svg}
           width={size.w}
@@ -455,15 +469,18 @@ export function MorphChart({
           <text ref={(el) => void (refs.current.endText = el)} fontSize={9.5} className="mono" fill="var(--accent)" letterSpacing="0.14em">
             TODAY
           </text>
-          <g ref={(el) => void (refs.current.marker = el)} style={{ opacity: 0, transition: "opacity .2s" }} pointerEvents="none">
+        </svg>
+        {/* hover marker on its own layer: moving it never repaints the chart (and its glow) below */}
+        <svg width={size.w} height={size.h} className="pointer-events-none absolute left-0 top-0 overflow-visible" style={{ willChange: "transform" }} aria-hidden>
+          <g ref={(el) => void (refs.current.marker = el)} style={{ opacity: 0, transition: "opacity .2s" }}>
             <path ref={(el) => void (refs.current.mline = el)} stroke="var(--ink)" strokeOpacity={0.35} />
             <circle ref={(el) => void (refs.current.mdot = el)} r={4.5} fill="var(--void)" stroke="var(--ink)" strokeWidth={1.5} />
           </g>
         </svg>
         <div
           ref={(el) => void (refs.current.tip = el)}
-          className="pointer-events-none absolute left-0 top-0 whitespace-nowrap border border-[var(--line-strong)] bg-[rgb(8_8_10/0.92)] px-3 py-2 backdrop-blur-md"
-          style={{ opacity: 0, transition: "opacity .15s" }}
+          className="pointer-events-none absolute left-0 top-0 whitespace-nowrap border border-[var(--line-strong)] bg-[rgb(8_8_10/0.96)] px-3 py-2"
+          style={{ opacity: 0, transition: "opacity .15s", willChange: "transform" }}
           aria-hidden
         >
           <div className="figure text-[22px] leading-none text-ink">{format(values[h] ?? 0)}</div>

@@ -240,9 +240,11 @@ html.lenis body {
     background-size: 100% 1px;
   }
 
+  /* --vx is written per element by the pointer loop, already eased — no transition, which
+     would start a fresh animation on every frame */
   .velocity-skew {
-    transform: skewX(calc(var(--vx) * -7deg));
-    transition: transform 0.6s var(--ease-out);
+    transform: skewX(calc(var(--vx, 0) * -7deg));
+    will-change: transform;
   }
 
   .blink {
